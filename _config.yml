@@ -16,10 +16,12 @@ yandex_site_verification:
 
 
 # Build settings
-theme                   : minimal-mistakes-jekyll
+#theme                   : minimal-mistakes-jekyll
+remote_theme            : "mmistakes/minimal-mistakes@4.26.2"
 minimal_mistakes_skin   : "default"
 plugins:
   - jekyll-feed
+  - jekyll-include-cache
 
 # Site Author
 author:
