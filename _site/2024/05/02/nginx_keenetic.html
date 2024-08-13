@@ -1,0 +1,681 @@
+<!doctype html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.26.2 by Michael Rose
+  Copyright 2013-2024 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+-->
+
+<html lang="en-US" class="no-js">
+  <head>
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>Настройка nginx на роутере keenetic - setigate.ru</title>
+<meta name="description" content="Статья описывает установку веб-сервера nginx на роутерах keenetic. Для чего это может быть нужно? Если собственный блог страсть как хочется, публичным хостерам типа github pages вы не доверяете, своей “железной” виртуалки дома у вас нет, а облачному провайдеру платить не хочется,  то такой вариант вполне возможен.  Помимо установки затрагиваются вопросы настройки nginx для ограниченного доступа к приватным разделам сайта.  Настройка keenetic Вопрос использовать http или https уже давно не стоит, а значит для полноценного сайта вам потребуется освободить 443 порт, который по умолчанию занят админкой keenetic.  Необходимо включить в UI админке доступ посредством telnet, и с помощью любого shell клиента попасть на роутер: telnet 192.168.1.1 # IP адрес роутера Login: Password: # Переназначение порта, пусть будет 4433, 80 порт также остается ip http ssl port 4433 system configuration save   Установка nginx  Там же, в админке установите дополнительные компоненты системы - OPKG, еще я добавил “Модули ядра для поддержки файловых систем”. Описанное верно для версии ядра KeeneticOS 4.1.6. Подробная инструкция по Установке OPKG Entware на встроенную память роутера лежит в официальной документации на сайте Keenetic.  Перейдем к установке пакетов. Также, в консоли, открыв ssh до только что установленного линукса на роутере, обновим репо и поставим необходимое. opkg update opkg install nginx-ssl opkg install bash ca-certificates coreutils-mktemp curl diffutils grep openssl-util openssh-sftp-server   Готово! Осталось скопировать ваш nginx.conf в /opt/etc/nginx/nginx.conf. На сайте DigitalOcean есть удобный мастер по подготовке файла конфигурации с вашими требованиями,  ссылки в конце статьи.  Проверим конфигурацию и запустим сервис.  # Проверка конфига nginx -t # Старт сервиса /opt/etc/init.d/S80nginx start # Еще пригодится релоад и рестарт /opt/etc/init.d/S80nginx reload /opt/etc/init.d/S80nginx restart   Базовая аутентификация  Базовая аутентифкация входит в стандартную поставку nginx и позволяет закрыть определенные раздела сайта парой логин/пароль.  Для чего - решать вам.  Создадим файл с логином и паролем. mkdir -p /opt/root/ca/private/ cd /opt/root/ca/private/ touch htpasswd # Безопасность превыше всего! chmod 400 htpasswd chown -R nobody:root /opt/root/ca/private/ # Собственно сама пара, вместо my_login подставить свой логин echo &#39;my_login:&#39; &gt;&gt; /opt/root/ca/private/htpasswd # Укажем ключ -5 чтобы использовать хэш-функцию sha-256 openssl passwd -5 &gt;&gt; /opt/root/ca/private/htpasswd   Теперь можно добавить в ваш nginx.conf в интересующий раздел location строки: auth_basic           &quot;Private zone&quot;; auth_basic_user_file /opt/root/ca/private/htpasswd;  Например, это будет location /private/, тогда при переходе на www.your.domain.com/private вы получите предложение ввести логин и пароль для открытия страницы.  Клиентские сертификаты  Для абсолютного большинства публичных сайтов используется ssl-сертификат сервера, который позволяет через цепочку доверия убедиться в подлинности сайта. Да, это не идеально, и зеленый замочек в вашем браузере говорит лишь о том, что сайт принадлежит его владельцу,  а что за “Рога И Копыта” им владеют, честная это компания или пирамида-однодневка, система, да и вся отрасль сертификатов вам ответ не дадут.  В корпоративной среде, помимо проверки валидности серверного сертификата клиентом, распространена обратная аутентификация клиента сервером, или, проще говоря, вход на веб-ресурс по ssl-сертификату. Для построения такой схемы используются собственные центры сертификации по аналогии с self-signed сертификатами без привлечения третьях лиц, которые забили место под солнцем, или доверенных центров сертификации.  Выдачей клиентских сертификатов мы сейчас и займемся.   # Подготовим структуру каталогов  cd /opt/root/  mkdir ca  cd ca/  mkdir certs csr newcerts private  chmod 700 private  # Каждый клиентский сертификат будет иметь свой номер, здесь определим номерную серию  touch index.txt  echo 1000 &gt; serial  CA profile. Подготовим конфигурационный файл conf/ca.conf. [ ca ] default_ca = CA_default  [ CA_default ] # Directory and file locations. dir               = /opt/root/ca certs             = $dir/certs crl_dir           = $dir/crl new_certs_dir     = $dir/newcerts database          = $dir/index.txt serial            = $dir/serial RANDFILE          = $dir/private/.rand  # The root key and root certificate.   private_key       = $dir/private/ca.key   certificate       = $dir/certs/ca.crt  name_opt          = ca_default   cert_opt          = ca_default   default_days      = 365   default_md        = sha256 preserve          = no   policy            = policy  [ policy ] # The root CA should only sign intermediate certificates that match. # See the POLICY FORMAT section of man ca. countryName             = match stateOrProvinceName     = match organizationName        = match organizationalUnitName  = optional commonName              = supplied emailAddress            = optional   [ req ] default_md = sha256 prompt = no string_mask = utf8only x509_extensions = v3_ca distinguished_name = req_distinguished_name  [ req_distinguished_name ] commonName = SetiGateCA countryName = RU stateOrProvinceName = Moscow organizationName = SetiGate  [ v3_ca ] basicConstraints = critical,CA:true keyUsage=critical,digitalSignature subjectKeyIdentifier = hash authorityKeyIdentifier = keyid:always,issuer  [ server_cert ] basicConstraints=CA:false extendedKeyUsage=serverAuth nsCertType = server subjectKeyIdentifier = hash authorityKeyIdentifier = keyid,issuer:always  [ user_cert ] basicConstraints=CA:false extendedKeyUsage=clientAuth nsCertType = client subjectKeyIdentifier = hash authorityKeyIdentifier = keyid,issuer  Генерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного Certificate Authority (CA). # Конечно, на эллиптических кривых openssl ecparam -genkey -name secp384r1 &gt; private/ca.key chmod 400 ca.key # Срок действия сертификата 10 лет openssl req -config conf/ca.conf -key private/ca.key -new -x509 -days 3650 -out certs/ca.crt openssl x509 -in certs/ca.crt -text  Server Profile.  В зависимости от ваших требований этот пункт можно пропустить. На серверный сертификат, полученный таким образом, браузер будет ругаться как на самоподписанный. Чтобы сторонние пользователи сайта не видели угрожающих надписей, то можно выпустить серверный сертификат в Let’s Encrypt.  Подготовим конфигурационный файл conf/server.conf. [ req ] default_md = sha256 prompt = no days = 365 string_mask = utf8only req_extensions = req_ext distinguished_name = req_distinguished_name  [ req_distinguished_name ] commonName = setigate.ru countryName = RU stateOrProvinceName = Moscow organizationName = SetiGate  [ req_ext ] #extendedKeyUsage=serverAuth #basicConstraints=CA:false #nsCertType = server #subjectKeyIdentifier = hash ##authorityKeyIdentifier = keyid,issuer:always subjectAltName = @alt_names  [ alt_names ] DNS.0 = setigate.ru DNS.1 = www.setigate.ru  Генерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного CA. # Приватный ключ openssl ecparam -genkey -name secp384r1 &gt; private/server.key chmod 400 server.key # Запрос на выпуск сертификата (CSR) openssl req -config conf/server.conf -key private/server.key -new -out csr/server.csr # Подписываем CSR нашим CA openssl ca -config conf/ca.conf -extensions server_cert -in csr/server.csr -out certs/server.crt   Client profile. Выпуск  клиентского сертификата, по которому будет осуществляться вход на защищенный ресурс. Подготовим конфигурационный файл для выпуска сертификата conf/client.conf. [ req ] default_md = sha256 prompt = no days = 365 string_mask = utf8only req_extensions = req_ext distinguished_name = req_distinguished_name  [ req_distinguished_name ] commonName = Sergei TItov countryName = RU stateOrProvinceName = Moscow organizationName = SetiGate  [ req_ext ] #extendedKeyUsage=clientAuth #basicConstraints=CA:false #nsCertType = client #subjectKeyIdentifier = hash #authorityKeyIdentifier = keyid,issuer subjectAltName = @alt_names  [ alt_names ] DNS.0 = setigate.ru DNS.1 = www.setigate.ru  Генерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного CA. # Приватный ключ openssl ecparam -genkey -name secp384r1 &gt; /opt/root/ca/private/client.key chmod 400 client.key # Запрос на выпуск сертификата (CSR) openssl req -config conf/client.conf  -key private/client.key  -new -out csr/client.csr # Подписываем CSR нашим CA openssl ca -config conf/ca.conf -extensions user_cert -in csr/client.csr -out certs/client.crt # Преобразуем сертификат и приватный ключ в формат контейнера pkcs12 openssl pkcs12 -export -in certs/client.crt -inkey private/client.key -out client.p12 -passout pass:123     Примечание. Изначально пробовал использовать известную кривую ed25519 для создания ключа, но оказалось, что она не сильно приветствуется, и большинство браузеров не поддерживает этот тип кривой. Алгоритм ed25519 создан энтузиастом, и, видимо, явных дыр в нем нет, в отличие от того, что одобрил NIST. Но это не должо волновать простого владельца личного бложика. Если вам тоже захочеться поэкспериментировать, то вызов openssl немного другой: openssl genpkey -algorithm ed25519 -out test.key   Полученный сертификат в формате pkcs12 необходимо скачать на компьютер и загрузить в хранилище сертификатов браузера. Теперь можно проверить подключение. При открытии защищенной ссылки браузер предложит выбрать для аутентификации загруженный клиентский сертификат. Также можно проверить подключение через curl.  openssl s_client -connect your.domain.com curl -vk --key private/client.key --cert certs/client.crt https://your.domain.com/private/   Полезные ссылки  Чтобы разобраться в области ssl-сертификатов, понять процесс их выдачи, тонкой конфигурации и, особенно, как создать свой собственный удостоверяющий центр, мне помогли следующие ссылки:     Онлайн мастер NginxСonfig от DigitalOcean   Create ED25519 certificates for TLS with OpenSSL   Статья на Хабре. Авторизация клиентов в nginx посредством SSL сертификатов   На английском. How to setup your own CA with OpenSSL   Сформировать CSR на CertificateTools.com X509 Certificate Generator   Официальная документация OpenSSL x509v3_config по формату сертификатов   Инструкция от IBM OpenSSL configuration examples   Инструкция от IBM Creating CA signed certificates for the monitoring infrastructure   ЛУЧШАЯ инструкция на русском с сайта Сергея Голубева   Проксирование cockpit через Nginx">
+
+
+  <meta name="author" content="Sergei Titov">
+  
+  <meta property="article:author" content="Sergei Titov">
+  
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="setigate.ru">
+<meta property="og:title" content="Настройка nginx на роутере keenetic">
+<meta property="og:url" content="http://localhost:4000/2024/05/02/nginx_keenetic.html">
+
+
+  <meta property="og:description" content="Статья описывает установку веб-сервера nginx на роутерах keenetic. Для чего это может быть нужно? Если собственный блог страсть как хочется, публичным хостерам типа github pages вы не доверяете, своей “железной” виртуалки дома у вас нет, а облачному провайдеру платить не хочется,  то такой вариант вполне возможен.  Помимо установки затрагиваются вопросы настройки nginx для ограниченного доступа к приватным разделам сайта.  Настройка keenetic Вопрос использовать http или https уже давно не стоит, а значит для полноценного сайта вам потребуется освободить 443 порт, который по умолчанию занят админкой keenetic.  Необходимо включить в UI админке доступ посредством telnet, и с помощью любого shell клиента попасть на роутер: telnet 192.168.1.1 # IP адрес роутера Login: Password: # Переназначение порта, пусть будет 4433, 80 порт также остается ip http ssl port 4433 system configuration save   Установка nginx  Там же, в админке установите дополнительные компоненты системы - OPKG, еще я добавил “Модули ядра для поддержки файловых систем”. Описанное верно для версии ядра KeeneticOS 4.1.6. Подробная инструкция по Установке OPKG Entware на встроенную память роутера лежит в официальной документации на сайте Keenetic.  Перейдем к установке пакетов. Также, в консоли, открыв ssh до только что установленного линукса на роутере, обновим репо и поставим необходимое. opkg update opkg install nginx-ssl opkg install bash ca-certificates coreutils-mktemp curl diffutils grep openssl-util openssh-sftp-server   Готово! Осталось скопировать ваш nginx.conf в /opt/etc/nginx/nginx.conf. На сайте DigitalOcean есть удобный мастер по подготовке файла конфигурации с вашими требованиями,  ссылки в конце статьи.  Проверим конфигурацию и запустим сервис.  # Проверка конфига nginx -t # Старт сервиса /opt/etc/init.d/S80nginx start # Еще пригодится релоад и рестарт /opt/etc/init.d/S80nginx reload /opt/etc/init.d/S80nginx restart   Базовая аутентификация  Базовая аутентифкация входит в стандартную поставку nginx и позволяет закрыть определенные раздела сайта парой логин/пароль.  Для чего - решать вам.  Создадим файл с логином и паролем. mkdir -p /opt/root/ca/private/ cd /opt/root/ca/private/ touch htpasswd # Безопасность превыше всего! chmod 400 htpasswd chown -R nobody:root /opt/root/ca/private/ # Собственно сама пара, вместо my_login подставить свой логин echo &#39;my_login:&#39; &gt;&gt; /opt/root/ca/private/htpasswd # Укажем ключ -5 чтобы использовать хэш-функцию sha-256 openssl passwd -5 &gt;&gt; /opt/root/ca/private/htpasswd   Теперь можно добавить в ваш nginx.conf в интересующий раздел location строки: auth_basic           &quot;Private zone&quot;; auth_basic_user_file /opt/root/ca/private/htpasswd;  Например, это будет location /private/, тогда при переходе на www.your.domain.com/private вы получите предложение ввести логин и пароль для открытия страницы.  Клиентские сертификаты  Для абсолютного большинства публичных сайтов используется ssl-сертификат сервера, который позволяет через цепочку доверия убедиться в подлинности сайта. Да, это не идеально, и зеленый замочек в вашем браузере говорит лишь о том, что сайт принадлежит его владельцу,  а что за “Рога И Копыта” им владеют, честная это компания или пирамида-однодневка, система, да и вся отрасль сертификатов вам ответ не дадут.  В корпоративной среде, помимо проверки валидности серверного сертификата клиентом, распространена обратная аутентификация клиента сервером, или, проще говоря, вход на веб-ресурс по ssl-сертификату. Для построения такой схемы используются собственные центры сертификации по аналогии с self-signed сертификатами без привлечения третьях лиц, которые забили место под солнцем, или доверенных центров сертификации.  Выдачей клиентских сертификатов мы сейчас и займемся.   # Подготовим структуру каталогов  cd /opt/root/  mkdir ca  cd ca/  mkdir certs csr newcerts private  chmod 700 private  # Каждый клиентский сертификат будет иметь свой номер, здесь определим номерную серию  touch index.txt  echo 1000 &gt; serial  CA profile. Подготовим конфигурационный файл conf/ca.conf. [ ca ] default_ca = CA_default  [ CA_default ] # Directory and file locations. dir               = /opt/root/ca certs             = $dir/certs crl_dir           = $dir/crl new_certs_dir     = $dir/newcerts database          = $dir/index.txt serial            = $dir/serial RANDFILE          = $dir/private/.rand  # The root key and root certificate.   private_key       = $dir/private/ca.key   certificate       = $dir/certs/ca.crt  name_opt          = ca_default   cert_opt          = ca_default   default_days      = 365   default_md        = sha256 preserve          = no   policy            = policy  [ policy ] # The root CA should only sign intermediate certificates that match. # See the POLICY FORMAT section of man ca. countryName             = match stateOrProvinceName     = match organizationName        = match organizationalUnitName  = optional commonName              = supplied emailAddress            = optional   [ req ] default_md = sha256 prompt = no string_mask = utf8only x509_extensions = v3_ca distinguished_name = req_distinguished_name  [ req_distinguished_name ] commonName = SetiGateCA countryName = RU stateOrProvinceName = Moscow organizationName = SetiGate  [ v3_ca ] basicConstraints = critical,CA:true keyUsage=critical,digitalSignature subjectKeyIdentifier = hash authorityKeyIdentifier = keyid:always,issuer  [ server_cert ] basicConstraints=CA:false extendedKeyUsage=serverAuth nsCertType = server subjectKeyIdentifier = hash authorityKeyIdentifier = keyid,issuer:always  [ user_cert ] basicConstraints=CA:false extendedKeyUsage=clientAuth nsCertType = client subjectKeyIdentifier = hash authorityKeyIdentifier = keyid,issuer  Генерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного Certificate Authority (CA). # Конечно, на эллиптических кривых openssl ecparam -genkey -name secp384r1 &gt; private/ca.key chmod 400 ca.key # Срок действия сертификата 10 лет openssl req -config conf/ca.conf -key private/ca.key -new -x509 -days 3650 -out certs/ca.crt openssl x509 -in certs/ca.crt -text  Server Profile.  В зависимости от ваших требований этот пункт можно пропустить. На серверный сертификат, полученный таким образом, браузер будет ругаться как на самоподписанный. Чтобы сторонние пользователи сайта не видели угрожающих надписей, то можно выпустить серверный сертификат в Let’s Encrypt.  Подготовим конфигурационный файл conf/server.conf. [ req ] default_md = sha256 prompt = no days = 365 string_mask = utf8only req_extensions = req_ext distinguished_name = req_distinguished_name  [ req_distinguished_name ] commonName = setigate.ru countryName = RU stateOrProvinceName = Moscow organizationName = SetiGate  [ req_ext ] #extendedKeyUsage=serverAuth #basicConstraints=CA:false #nsCertType = server #subjectKeyIdentifier = hash ##authorityKeyIdentifier = keyid,issuer:always subjectAltName = @alt_names  [ alt_names ] DNS.0 = setigate.ru DNS.1 = www.setigate.ru  Генерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного CA. # Приватный ключ openssl ecparam -genkey -name secp384r1 &gt; private/server.key chmod 400 server.key # Запрос на выпуск сертификата (CSR) openssl req -config conf/server.conf -key private/server.key -new -out csr/server.csr # Подписываем CSR нашим CA openssl ca -config conf/ca.conf -extensions server_cert -in csr/server.csr -out certs/server.crt   Client profile. Выпуск  клиентского сертификата, по которому будет осуществляться вход на защищенный ресурс. Подготовим конфигурационный файл для выпуска сертификата conf/client.conf. [ req ] default_md = sha256 prompt = no days = 365 string_mask = utf8only req_extensions = req_ext distinguished_name = req_distinguished_name  [ req_distinguished_name ] commonName = Sergei TItov countryName = RU stateOrProvinceName = Moscow organizationName = SetiGate  [ req_ext ] #extendedKeyUsage=clientAuth #basicConstraints=CA:false #nsCertType = client #subjectKeyIdentifier = hash #authorityKeyIdentifier = keyid,issuer subjectAltName = @alt_names  [ alt_names ] DNS.0 = setigate.ru DNS.1 = www.setigate.ru  Генерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного CA. # Приватный ключ openssl ecparam -genkey -name secp384r1 &gt; /opt/root/ca/private/client.key chmod 400 client.key # Запрос на выпуск сертификата (CSR) openssl req -config conf/client.conf  -key private/client.key  -new -out csr/client.csr # Подписываем CSR нашим CA openssl ca -config conf/ca.conf -extensions user_cert -in csr/client.csr -out certs/client.crt # Преобразуем сертификат и приватный ключ в формат контейнера pkcs12 openssl pkcs12 -export -in certs/client.crt -inkey private/client.key -out client.p12 -passout pass:123     Примечание. Изначально пробовал использовать известную кривую ed25519 для создания ключа, но оказалось, что она не сильно приветствуется, и большинство браузеров не поддерживает этот тип кривой. Алгоритм ed25519 создан энтузиастом, и, видимо, явных дыр в нем нет, в отличие от того, что одобрил NIST. Но это не должо волновать простого владельца личного бложика. Если вам тоже захочеться поэкспериментировать, то вызов openssl немного другой: openssl genpkey -algorithm ed25519 -out test.key   Полученный сертификат в формате pkcs12 необходимо скачать на компьютер и загрузить в хранилище сертификатов браузера. Теперь можно проверить подключение. При открытии защищенной ссылки браузер предложит выбрать для аутентификации загруженный клиентский сертификат. Также можно проверить подключение через curl.  openssl s_client -connect your.domain.com curl -vk --key private/client.key --cert certs/client.crt https://your.domain.com/private/   Полезные ссылки  Чтобы разобраться в области ssl-сертификатов, понять процесс их выдачи, тонкой конфигурации и, особенно, как создать свой собственный удостоверяющий центр, мне помогли следующие ссылки:     Онлайн мастер NginxСonfig от DigitalOcean   Create ED25519 certificates for TLS with OpenSSL   Статья на Хабре. Авторизация клиентов в nginx посредством SSL сертификатов   На английском. How to setup your own CA with OpenSSL   Сформировать CSR на CertificateTools.com X509 Certificate Generator   Официальная документация OpenSSL x509v3_config по формату сертификатов   Инструкция от IBM OpenSSL configuration examples   Инструкция от IBM Creating CA signed certificates for the monitoring infrastructure   ЛУЧШАЯ инструкция на русском с сайта Сергея Голубева   Проксирование cockpit через Nginx">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2024-05-02T00:00:00+03:00">
+
+
+
+
+
+
+<link rel="canonical" href="http://localhost:4000/2024/05/02/nginx_keenetic.html">
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- end _includes/seo.html -->
+
+
+
+  <link href="/feed.xml" type="application/atom+xml" rel="alternate" title="setigate.ru Feed">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script type="text/javascript">
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+  window.enable_copy_code_button = true;
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css"></noscript>
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single" dir="ltr">
+    <nav class="skip-links">
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+          <a class="site-logo" href="/"><img src="/assets/images/logo.png" alt=" "></a>
+        
+        <a class="site-title" href="/">
+           
+          
+        </a>
+        <ul class="visible-links"><li class="masthead__menu-item">
+              <a
+                href="/about/"
+                
+                
+              >Об авторе</a>
+            </li><li class="masthead__menu-item">
+              <a
+                href="/projects/"
+                
+                
+              >Проекты</a>
+            </li><li class="masthead__menu-item">
+              <a
+                href="/year-archive/"
+                
+                
+              >Архив постов</a>
+            </li><li class="masthead__menu-item">
+              <a
+                href="/tags/"
+                
+                
+              >Облако тегов</a>
+            </li></ul>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+
+
+<div id="main" role="main">
+  
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Настройка nginx на роутере keenetic">
+    <meta itemprop="description" content="Статья описывает установку веб-сервера nginx на роутерах keenetic. Для чего это может быть нужно?Если собственный блог страсть как хочется, публичным хостерам типа github pages вы не доверяете, своей “железной” виртуалки дома у вас нет, а облачному провайдеру платить не хочется, то такой вариант вполне возможен.Помимо установки затрагиваются вопросы настройки nginx для ограниченного доступа к приватным разделам сайта.Настройка keeneticВопрос использовать http или https уже давно не стоит, а значит для полноценного сайта вам потребуется освободить 443 порт, который по умолчанию занят админкой keenetic. Необходимо включить в UI админке доступ посредством telnet, и с помощью любого shell клиента попасть на роутер:telnet 192.168.1.1 # IP адрес роутераLogin:Password:# Переназначение порта, пусть будет 4433, 80 порт также остаетсяip http ssl port 4433system configuration saveУстановка nginxТам же, в админке установите дополнительные компоненты системы - OPKG, еще я добавил “Модули ядра для поддержки файловых систем”. Описанное верно для версии ядра KeeneticOS 4.1.6.Подробная инструкция по Установке OPKG Entware на встроенную память роутера лежит в официальной документации на сайте Keenetic.Перейдем к установке пакетов. Также, в консоли, открыв ssh до только что установленного линукса на роутере, обновим репо и поставим необходимое.opkg updateopkg install nginx-sslopkg install bash ca-certificates coreutils-mktemp curl diffutils grep openssl-util openssh-sftp-serverГотово! Осталось скопировать ваш nginx.conf в /opt/etc/nginx/nginx.conf. На сайте DigitalOcean есть удобный мастер по подготовке файла конфигурации с вашими требованиями, ссылки в конце статьи.Проверим конфигурацию и запустим сервис.# Проверка конфигаnginx -t# Старт сервиса/opt/etc/init.d/S80nginx start# Еще пригодится релоад и рестарт/opt/etc/init.d/S80nginx reload/opt/etc/init.d/S80nginx restartБазовая аутентификацияБазовая аутентифкация входит в стандартную поставку nginx и позволяет закрыть определенные раздела сайта парой логин/пароль. Для чего - решать вам.Создадим файл с логином и паролем.mkdir -p /opt/root/ca/private/cd /opt/root/ca/private/touch htpasswd# Безопасность превыше всего!chmod 400 htpasswdchown -R nobody:root /opt/root/ca/private/# Собственно сама пара, вместо my_login подставить свой логинecho &#39;my_login:&#39; &gt;&gt; /opt/root/ca/private/htpasswd# Укажем ключ -5 чтобы использовать хэш-функцию sha-256openssl passwd -5 &gt;&gt; /opt/root/ca/private/htpasswdТеперь можно добавить в ваш nginx.conf в интересующий раздел location строки:auth_basic           &quot;Private zone&quot;;auth_basic_user_file /opt/root/ca/private/htpasswd;Например, это будет location /private/, тогда при переходе на www.your.domain.com/private вы получите предложение ввести логин и пароль для открытия страницы.Клиентские сертификатыДля абсолютного большинства публичных сайтов используется ssl-сертификат сервера, который позволяет через цепочку доверияубедиться в подлинности сайта. Да, это не идеально, и зеленый замочек в вашем браузере говорит лишь о том, что сайт принадлежит его владельцу, а что за “Рога И Копыта” им владеют, честная это компания или пирамида-однодневка, система, да и вся отрасль сертификатов вам ответ не дадут.В корпоративной среде, помимо проверки валидности серверного сертификата клиентом, распространена обратная аутентификация клиента сервером, или, проще говоря,вход на веб-ресурс по ssl-сертификату. Для построения такой схемы используются собственные центры сертификации по аналогии с self-signed сертификатами без привлечениятретьях лиц, которые забили место под солнцем, или доверенных центров сертификации.Выдачей клиентских сертификатов мы сейчас и займемся. # Подготовим структуру каталогов cd /opt/root/ mkdir ca cd ca/ mkdir certs csr newcerts private chmod 700 private # Каждый клиентский сертификат будет иметь свой номер, здесь определим номерную серию touch index.txt echo 1000 &gt; serialCA profile.Подготовим конфигурационный файл conf/ca.conf.[ ca ]default_ca = CA_default[ CA_default ]# Directory and file locations.dir               = /opt/root/cacerts             = $dir/certscrl_dir           = $dir/crlnew_certs_dir     = $dir/newcertsdatabase          = $dir/index.txtserial            = $dir/serialRANDFILE          = $dir/private/.rand# The root key and root certificate.  private_key       = $dir/private/ca.key  certificate       = $dir/certs/ca.crtname_opt          = ca_default  cert_opt          = ca_default  default_days      = 365  default_md        = sha256preserve          = no  policy            = policy[ policy ]# The root CA should only sign intermediate certificates that match.# See the POLICY FORMAT section of man ca.countryName             = matchstateOrProvinceName     = matchorganizationName        = matchorganizationalUnitName  = optionalcommonName              = suppliedemailAddress            = optional[ req ]default_md = sha256prompt = nostring_mask = utf8onlyx509_extensions = v3_cadistinguished_name = req_distinguished_name[ req_distinguished_name ]commonName = SetiGateCAcountryName = RUstateOrProvinceName = MoscoworganizationName = SetiGate[ v3_ca ]basicConstraints = critical,CA:truekeyUsage=critical,digitalSignaturesubjectKeyIdentifier = hashauthorityKeyIdentifier = keyid:always,issuer[ server_cert ]basicConstraints=CA:falseextendedKeyUsage=serverAuthnsCertType = serversubjectKeyIdentifier = hashauthorityKeyIdentifier = keyid,issuer:always[ user_cert ]basicConstraints=CA:falseextendedKeyUsage=clientAuthnsCertType = clientsubjectKeyIdentifier = hashauthorityKeyIdentifier = keyid,issuerГенерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного Certificate Authority (CA).# Конечно, на эллиптических кривыхopenssl ecparam -genkey -name secp384r1 &gt; private/ca.keychmod 400 ca.key# Срок действия сертификата 10 летopenssl req -config conf/ca.conf -key private/ca.key -new -x509 -days 3650 -out certs/ca.crtopenssl x509 -in certs/ca.crt -textServer Profile. В зависимости от ваших требований этот пункт можно пропустить. На серверный сертификат, полученный таким образом, браузер будет ругаться как на самоподписанный.Чтобы сторонние пользователи сайта не видели угрожающих надписей, то можно выпустить серверный сертификат в Let’s Encrypt.Подготовим конфигурационный файл conf/server.conf.[ req ]default_md = sha256prompt = nodays = 365string_mask = utf8onlyreq_extensions = req_extdistinguished_name = req_distinguished_name[ req_distinguished_name ]commonName = setigate.rucountryName = RUstateOrProvinceName = MoscoworganizationName = SetiGate[ req_ext ]#extendedKeyUsage=serverAuth#basicConstraints=CA:false#nsCertType = server#subjectKeyIdentifier = hash##authorityKeyIdentifier = keyid,issuer:alwayssubjectAltName = @alt_names[ alt_names ]DNS.0 = setigate.ruDNS.1 = www.setigate.ruГенерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного CA.# Приватный ключopenssl ecparam -genkey -name secp384r1 &gt; private/server.keychmod 400 server.key# Запрос на выпуск сертификата (CSR)openssl req -config conf/server.conf -key private/server.key -new -out csr/server.csr# Подписываем CSR нашим CAopenssl ca -config conf/ca.conf -extensions server_cert -in csr/server.csr -out certs/server.crtClient profile.Выпуск  клиентского сертификата, по которому будет осуществляться вход на защищенный ресурс.Подготовим конфигурационный файл для выпуска сертификата conf/client.conf.[ req ]default_md = sha256prompt = nodays = 365string_mask = utf8onlyreq_extensions = req_extdistinguished_name = req_distinguished_name[ req_distinguished_name ]commonName = Sergei TItovcountryName = RUstateOrProvinceName = MoscoworganizationName = SetiGate[ req_ext ]#extendedKeyUsage=clientAuth#basicConstraints=CA:false#nsCertType = client#subjectKeyIdentifier = hash#authorityKeyIdentifier = keyid,issuersubjectAltName = @alt_names[ alt_names ]DNS.0 = setigate.ruDNS.1 = www.setigate.ruГенерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного CA.# Приватный ключopenssl ecparam -genkey -name secp384r1 &gt; /opt/root/ca/private/client.keychmod 400 client.key# Запрос на выпуск сертификата (CSR)openssl req -config conf/client.conf  -key private/client.key  -new -out csr/client.csr# Подписываем CSR нашим CAopenssl ca -config conf/ca.conf -extensions user_cert -in csr/client.csr -out certs/client.crt# Преобразуем сертификат и приватный ключ в формат контейнера pkcs12openssl pkcs12 -export -in certs/client.crt -inkey private/client.key -out client.p12 -passout pass:123  Примечание.Изначально пробовал использовать известную кривую ed25519 для создания ключа, но оказалось, что она не сильно приветствуется, и большинство браузеров не поддерживает этот тип кривой. Алгоритм ed25519 создан энтузиастом, и, видимо, явных дыр в нем нет, в отличие от того, что одобрил NIST. Но это не должо волновать простого владельца личного бложика. Если вам тоже захочеться поэкспериментировать, то вызов openssl немного другой:openssl genpkey -algorithm ed25519 -out test.keyПолученный сертификат в формате pkcs12 необходимо скачать на компьютер и загрузить в хранилище сертификатов браузера. Теперь можно проверить подключение.При открытии защищенной ссылки браузер предложит выбрать для аутентификации загруженный клиентский сертификат.Также можно проверить подключение через curl.openssl s_client -connect your.domain.comcurl -vk --key private/client.key --cert certs/client.crt https://your.domain.com/private/Полезные ссылкиЧтобы разобраться в области ssl-сертификатов, понять процесс их выдачи, тонкой конфигурации и, особенно, как создать свой собственный удостоверяющий центр, мне помогли следующие ссылки:  Онлайн мастер NginxСonfig от DigitalOcean  Create ED25519 certificates for TLS with OpenSSL  Статья на Хабре. Авторизация клиентов в nginx посредством SSL сертификатов  На английском. How to setup your own CA with OpenSSL  Сформировать CSR на CertificateTools.com X509 Certificate Generator  Официальная документация OpenSSL x509v3_config по формату сертификатов  Инструкция от IBM OpenSSL configuration examples  Инструкция от IBM Creating CA signed certificates for the monitoring infrastructure  ЛУЧШАЯ инструкция на русском с сайта Сергея Голубева  Проксирование cockpit через Nginx">
+    <meta itemprop="datePublished" content="2024-05-02T00:00:00+03:00">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">
+            <a href="http://localhost:4000/2024/05/02/nginx_keenetic.html" itemprop="url">Настройка nginx на роутере keenetic
+</a>
+          </h1>
+          
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          6 minute read
+        
+      </span>
+    
+  </p>
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+        <style>body {text-align: justify}</style>
+
+<p>Статья описывает установку веб-сервера nginx на роутерах keenetic. Для чего это может быть нужно?
+Если собственный блог страсть как хочется, публичным хостерам типа github pages вы не доверяете, своей “железной” виртуалки дома у вас нет, а облачному провайдеру платить не хочется, 
+то такой вариант вполне возможен.</p>
+
+<p>Помимо установки затрагиваются вопросы настройки nginx для ограниченного доступа к приватным разделам сайта.</p>
+
+<h2 id="настройка-keenetic">Настройка keenetic</h2>
+<p>Вопрос использовать http или https уже давно не стоит, а значит для полноценного сайта вам потребуется освободить 443 порт, который по умолчанию занят админкой keenetic. 
+Необходимо включить в UI админке доступ посредством telnet, и с помощью любого shell клиента попасть на роутер:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>telnet 192.168.1.1 <span class="c"># IP адрес роутера</span>
+Login:
+Password:
+<span class="c"># Переназначение порта, пусть будет 4433, 80 порт также остается</span>
+ip http ssl port 4433
+system configuration save
+</code></pre></div></div>
+
+<h2 id="установка-nginx">Установка nginx</h2>
+
+<p>Там же, в админке установите дополнительные компоненты системы - OPKG, еще я добавил “Модули ядра для поддержки файловых систем”. Описанное верно для версии ядра KeeneticOS 4.1.6.
+Подробная инструкция по <a href="https://help.keenetic.ru/hc/ru/articles/360021888880.html?utm_source=webhelp&amp;utm_campaign=4.00.C.7.0-0&amp;utm_medium=ui_notes&amp;utm_content=controlpanel/opkg">Установке OPKG Entware на встроенную память роутера</a> лежит в официальной документации на сайте Keenetic.</p>
+
+<p>Перейдем к установке пакетов. Также, в консоли, открыв ssh до только что установленного линукса на роутере, обновим репо и поставим необходимое.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>opkg update
+opkg <span class="nb">install </span>nginx-ssl
+opkg <span class="nb">install </span>bash ca-certificates coreutils-mktemp curl diffutils <span class="nb">grep </span>openssl-util openssh-sftp-server
+</code></pre></div></div>
+
+<p>Готово! Осталось скопировать ваш nginx.conf в /opt/etc/nginx/nginx.conf. На сайте DigitalOcean есть удобный мастер по подготовке файла конфигурации с вашими требованиями, 
+ссылки в конце статьи.</p>
+
+<p>Проверим конфигурацию и запустим сервис.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Проверка конфига</span>
+nginx <span class="nt">-t</span>
+<span class="c"># Старт сервиса</span>
+/opt/etc/init.d/S80nginx start
+<span class="c"># Еще пригодится релоад и рестарт</span>
+/opt/etc/init.d/S80nginx reload
+/opt/etc/init.d/S80nginx restart
+</code></pre></div></div>
+
+<h2 id="базовая-аутентификация">Базовая аутентификация</h2>
+
+<p>Базовая аутентифкация входит в стандартную поставку nginx и позволяет закрыть определенные раздела сайта парой логин/пароль. 
+Для чего - решать вам.</p>
+
+<p>Создадим файл с логином и паролем.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">mkdir</span> <span class="nt">-p</span> /opt/root/ca/private/
+<span class="nb">cd</span> /opt/root/ca/private/
+<span class="nb">touch </span>htpasswd
+<span class="c"># Безопасность превыше всего!</span>
+<span class="nb">chmod </span>400 htpasswd
+<span class="nb">chown</span> <span class="nt">-R</span> nobody:root /opt/root/ca/private/
+<span class="c"># Собственно сама пара, вместо my_login подставить свой логин</span>
+<span class="nb">echo</span> <span class="s1">'my_login:'</span> <span class="o">&gt;&gt;</span> /opt/root/ca/private/htpasswd
+<span class="c"># Укажем ключ -5 чтобы использовать хэш-функцию sha-256</span>
+openssl passwd <span class="nt">-5</span> <span class="o">&gt;&gt;</span> /opt/root/ca/private/htpasswd
+</code></pre></div></div>
+
+<p>Теперь можно добавить в ваш nginx.conf в интересующий раздел location строки:</p>
+<div class="language-vim highlighter-rouge"><div class="highlight"><pre class="highlight"><code>auth_basic           <span class="s2">"Private zone"</span>;
+auth_basic_user_file <span class="sr">/opt/</span>root<span class="sr">/ca/</span>private/htpasswd;
+</code></pre></div></div>
+<p>Например, это будет location /private/, тогда при переходе на www.your.domain.com/private вы получите предложение ввести логин и пароль для открытия страницы.</p>
+
+<h2 id="клиентские-сертификаты">Клиентские сертификаты</h2>
+
+<p>Для абсолютного большинства публичных сайтов используется ssl-сертификат сервера, который позволяет через цепочку доверия
+убедиться в подлинности сайта. Да, это не идеально, и зеленый замочек в вашем браузере говорит лишь о том, что сайт принадлежит его владельцу, 
+а что за “Рога И Копыта” им владеют, честная это компания или пирамида-однодневка, система, да и вся отрасль сертификатов вам ответ не дадут.</p>
+
+<p>В корпоративной среде, помимо проверки валидности серверного сертификата клиентом, распространена обратная аутентификация клиента сервером, или, проще говоря,
+вход на веб-ресурс по ssl-сертификату. Для построения такой схемы используются собственные центры сертификации по аналогии с self-signed сертификатами без привлечения
+третьях лиц, <del>которые забили место под солнцем,</del> или доверенных центров сертификации.</p>
+
+<p>Выдачей клиентских сертификатов мы сейчас и займемся.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="c"># Подготовим структуру каталогов</span>
+ <span class="nb">cd</span> /opt/root/
+ <span class="nb">mkdir </span>ca
+ <span class="nb">cd </span>ca/
+ <span class="nb">mkdir </span>certs csr newcerts private
+ <span class="nb">chmod </span>700 private
+ <span class="c"># Каждый клиентский сертификат будет иметь свой номер, здесь определим номерную серию</span>
+ <span class="nb">touch </span>index.txt
+ <span class="nb">echo </span>1000 <span class="o">&gt;</span> serial
+</code></pre></div></div>
+<p><strong>CA profile.</strong><br />
+Подготовим конфигурационный файл conf/ca.conf.</p>
+<div class="language-vim highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span> <span class="k">ca</span> <span class="p">]</span>
+default_ca <span class="p">=</span> CA_default
+
+<span class="p">[</span> CA_default <span class="p">]</span>
+# Directory <span class="nb">and</span> <span class="k">file</span> locations<span class="p">.</span>
+<span class="k">dir</span>               <span class="p">=</span> <span class="sr">/opt/</span>root/<span class="k">ca</span>
+certs             <span class="p">=</span> $<span class="k">dir</span>/certs
+crl_dir           <span class="p">=</span> $<span class="k">dir</span>/crl
+new_certs_dir     <span class="p">=</span> $<span class="k">dir</span>/newcerts
+database          <span class="p">=</span> $<span class="k">dir</span>/<span class="nb">index</span><span class="p">.</span>txt
+serial            <span class="p">=</span> $<span class="k">dir</span>/serial
+RANDFILE          <span class="p">=</span> $<span class="k">dir</span><span class="sr">/private/</span><span class="p">.</span><span class="nb">rand</span>
+
+# The root <span class="nb">key</span> <span class="nb">and</span> root certificate<span class="p">.</span>  
+private_key       <span class="p">=</span> $<span class="k">dir</span><span class="sr">/private/</span><span class="k">ca</span><span class="p">.</span><span class="nb">key</span>  
+certificate       <span class="p">=</span> $<span class="k">dir</span><span class="sr">/certs/</span><span class="k">ca</span><span class="p">.</span>crt
+
+name_opt          <span class="p">=</span> ca_default  
+cert_opt          <span class="p">=</span> ca_default  
+default_days      <span class="p">=</span> <span class="m">365</span>  
+default_md        <span class="p">=</span> <span class="nb">sha256</span>
+<span class="k">preserve</span>          <span class="p">=</span> no  
+policy            <span class="p">=</span> policy
+
+<span class="p">[</span> policy <span class="p">]</span>
+# The root CA should <span class="k">only</span> <span class="k">sign</span> intermediate certificates that <span class="k">match</span><span class="p">.</span>
+# See the POLICY FORMAT section of man <span class="k">ca</span><span class="p">.</span>
+countryName             <span class="p">=</span> <span class="k">match</span>
+stateOrProvinceName     <span class="p">=</span> <span class="k">match</span>
+organizationName        <span class="p">=</span> <span class="k">match</span>
+organizationalUnitName  <span class="p">=</span> optional
+commonName              <span class="p">=</span> supplied
+emailAddress            <span class="p">=</span> optional
+
+
+<span class="p">[</span> req <span class="p">]</span>
+default_md <span class="p">=</span> <span class="nb">sha256</span>
+<span class="nb">prompt</span> <span class="p">=</span> no
+string_mask <span class="p">=</span> utf8only
+x509_extensions <span class="p">=</span> v3_ca
+distinguished_name <span class="p">=</span> req_distinguished_name
+
+<span class="p">[</span> req_distinguished_name <span class="p">]</span>
+commonName <span class="p">=</span> SetiGateCA
+countryName <span class="p">=</span> RU
+stateOrProvinceName <span class="p">=</span> Moscow
+organizationName <span class="p">=</span> SetiGate
+
+<span class="p">[</span> v3_ca <span class="p">]</span>
+basicConstraints <span class="p">=</span> critical<span class="p">,</span>CA<span class="p">:</span>true
+keyUsage<span class="p">=</span>critical<span class="p">,</span>digitalSignature
+subjectKeyIdentifier <span class="p">=</span> hash
+authorityKeyIdentifier <span class="p">=</span> keyid<span class="p">:</span>always<span class="p">,</span>issuer
+
+<span class="p">[</span> server_cert <span class="p">]</span>
+basicConstraints<span class="p">=</span>CA<span class="p">:</span>false
+extendedKeyUsage<span class="p">=</span>serverAuth
+nsCertType <span class="p">=</span> server
+subjectKeyIdentifier <span class="p">=</span> hash
+authorityKeyIdentifier <span class="p">=</span> keyid<span class="p">,</span>issuer<span class="p">:</span>always
+
+<span class="p">[</span> user_cert <span class="p">]</span>
+basicConstraints<span class="p">=</span>CA<span class="p">:</span>false
+extendedKeyUsage<span class="p">=</span>clientAuth
+nsCertType <span class="p">=</span> client
+subjectKeyIdentifier <span class="p">=</span> hash
+authorityKeyIdentifier <span class="p">=</span> keyid<span class="p">,</span>issuer
+</code></pre></div></div>
+<p>Генерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного Certificate Authority (CA).</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Конечно, на эллиптических кривых</span>
+openssl ecparam <span class="nt">-genkey</span> <span class="nt">-name</span> secp384r1 <span class="o">&gt;</span> private/ca.key
+<span class="nb">chmod </span>400 ca.key
+<span class="c"># Срок действия сертификата 10 лет</span>
+openssl req <span class="nt">-config</span> conf/ca.conf <span class="nt">-key</span> private/ca.key <span class="nt">-new</span> <span class="nt">-x509</span> <span class="nt">-days</span> 3650 <span class="nt">-out</span> certs/ca.crt
+openssl x509 <span class="nt">-in</span> certs/ca.crt <span class="nt">-text</span>
+</code></pre></div></div>
+<p><strong>Server Profile.</strong> <br />
+В зависимости от ваших требований этот пункт можно пропустить. На серверный сертификат, полученный таким образом, браузер будет ругаться как на самоподписанный.
+Чтобы сторонние пользователи сайта не видели угрожающих надписей, то можно выпустить серверный сертификат в Let’s Encrypt.</p>
+
+<p>Подготовим конфигурационный файл conf/server.conf.</p>
+<div class="language-vim highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span> req <span class="p">]</span>
+default_md <span class="p">=</span> <span class="nb">sha256</span>
+<span class="nb">prompt</span> <span class="p">=</span> no
+days <span class="p">=</span> <span class="m">365</span>
+string_mask <span class="p">=</span> utf8only
+req_extensions <span class="p">=</span> req_ext
+distinguished_name <span class="p">=</span> req_distinguished_name
+
+<span class="p">[</span> req_distinguished_name <span class="p">]</span>
+commonName <span class="p">=</span> setigate<span class="p">.</span><span class="k">ru</span>
+countryName <span class="p">=</span> RU
+stateOrProvinceName <span class="p">=</span> Moscow
+organizationName <span class="p">=</span> SetiGate
+
+<span class="p">[</span> req_ext <span class="p">]</span>
+#extendedKeyUsage<span class="p">=</span>serverAuth
+#basicConstraints<span class="p">=</span>CA<span class="p">:</span>false
+#nsCertType <span class="p">=</span> server
+#subjectKeyIdentifier <span class="p">=</span> hash
+##authorityKeyIdentifier <span class="p">=</span> keyid<span class="p">,</span>issuer<span class="p">:</span>always
+subjectAltName <span class="p">=</span> @alt_names
+
+<span class="p">[</span> alt_names <span class="p">]</span>
+DNS<span class="p">.</span><span class="m">0</span> <span class="p">=</span> setigate<span class="p">.</span><span class="k">ru</span>
+DNS<span class="p">.</span><span class="m">1</span> <span class="p">=</span> www<span class="p">.</span>setigate<span class="p">.</span><span class="k">ru</span>
+</code></pre></div></div>
+<p>Генерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного CA.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Приватный ключ</span>
+openssl ecparam <span class="nt">-genkey</span> <span class="nt">-name</span> secp384r1 <span class="o">&gt;</span> private/server.key
+<span class="nb">chmod </span>400 server.key
+<span class="c"># Запрос на выпуск сертификата (CSR)</span>
+openssl req <span class="nt">-config</span> conf/server.conf <span class="nt">-key</span> private/server.key <span class="nt">-new</span> <span class="nt">-out</span> csr/server.csr
+<span class="c"># Подписываем CSR нашим CA</span>
+openssl ca <span class="nt">-config</span> conf/ca.conf <span class="nt">-extensions</span> server_cert <span class="nt">-in</span> csr/server.csr <span class="nt">-out</span> certs/server.crt
+</code></pre></div></div>
+
+<p><strong>Client profile.</strong><br />
+Выпуск  клиентского сертификата, по которому будет осуществляться вход на защищенный ресурс.
+Подготовим конфигурационный файл для выпуска сертификата conf/client.conf.</p>
+<div class="language-vim highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span> req <span class="p">]</span>
+default_md <span class="p">=</span> <span class="nb">sha256</span>
+<span class="nb">prompt</span> <span class="p">=</span> no
+days <span class="p">=</span> <span class="m">365</span>
+string_mask <span class="p">=</span> utf8only
+req_extensions <span class="p">=</span> req_ext
+distinguished_name <span class="p">=</span> req_distinguished_name
+
+<span class="p">[</span> req_distinguished_name <span class="p">]</span>
+commonName <span class="p">=</span> Sergei TItov
+countryName <span class="p">=</span> RU
+stateOrProvinceName <span class="p">=</span> Moscow
+organizationName <span class="p">=</span> SetiGate
+
+<span class="p">[</span> req_ext <span class="p">]</span>
+#extendedKeyUsage<span class="p">=</span>clientAuth
+#basicConstraints<span class="p">=</span>CA<span class="p">:</span>false
+#nsCertType <span class="p">=</span> client
+#subjectKeyIdentifier <span class="p">=</span> hash
+#authorityKeyIdentifier <span class="p">=</span> keyid<span class="p">,</span>issuer
+subjectAltName <span class="p">=</span> @alt_names
+
+<span class="p">[</span> alt_names <span class="p">]</span>
+DNS<span class="p">.</span><span class="m">0</span> <span class="p">=</span> setigate<span class="p">.</span><span class="k">ru</span>
+DNS<span class="p">.</span><span class="m">1</span> <span class="p">=</span> www<span class="p">.</span>setigate<span class="p">.</span><span class="k">ru</span>
+</code></pre></div></div>
+<p>Генерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного CA.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Приватный ключ</span>
+openssl ecparam <span class="nt">-genkey</span> <span class="nt">-name</span> secp384r1 <span class="o">&gt;</span> /opt/root/ca/private/client.key
+<span class="nb">chmod </span>400 client.key
+<span class="c"># Запрос на выпуск сертификата (CSR)</span>
+openssl req <span class="nt">-config</span> conf/client.conf  <span class="nt">-key</span> private/client.key  <span class="nt">-new</span> <span class="nt">-out</span> csr/client.csr
+<span class="c"># Подписываем CSR нашим CA</span>
+openssl ca <span class="nt">-config</span> conf/ca.conf <span class="nt">-extensions</span> user_cert <span class="nt">-in</span> csr/client.csr <span class="nt">-out</span> certs/client.crt
+<span class="c"># Преобразуем сертификат и приватный ключ в формат контейнера pkcs12</span>
+openssl pkcs12 <span class="nt">-export</span> <span class="nt">-in</span> certs/client.crt <span class="nt">-inkey</span> private/client.key <span class="nt">-out</span> client.p12 <span class="nt">-passout</span> pass:123
+</code></pre></div></div>
+<blockquote>
+  <p>Примечание.<br />
+Изначально пробовал использовать известную кривую ed25519 для создания ключа, но оказалось, что она не сильно приветствуется, и большинство браузеров не поддерживает этот тип кривой. Алгоритм ed25519 создан энтузиастом, и, видимо, явных дыр в нем нет, в отличие от того, что одобрил <a href="https://www.nist.gov/">NIST</a>. Но это не должо волновать простого владельца личного бложика. Если вам тоже захочеться поэкспериментировать, то вызов openssl немного другой:<br />
+<code class="language-plaintext highlighter-rouge">openssl genpkey -algorithm ed25519 -out test.key</code></p>
+</blockquote>
+
+<p>Полученный сертификат в формате pkcs12 необходимо скачать на компьютер и загрузить в хранилище сертификатов браузера. Теперь можно проверить подключение.
+При открытии защищенной ссылки браузер предложит выбрать для аутентификации загруженный клиентский сертификат.
+Также можно проверить подключение через curl.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>openssl s_client <span class="nt">-connect</span> your.domain.com
+curl <span class="nt">-vk</span> <span class="nt">--key</span> private/client.key <span class="nt">--cert</span> certs/client.crt https://your.domain.com/private/
+</code></pre></div></div>
+
+<h2 id="полезные-ссылки">Полезные ссылки</h2>
+
+<p>Чтобы разобраться в области ssl-сертификатов, понять процесс их выдачи, тонкой конфигурации и, особенно, как создать свой собственный удостоверяющий центр, мне помогли следующие ссылки:</p>
+
+<ul>
+  <li><a href="https://www.digitalocean.com/community/tools/nginx?global.app.lang=ru">Онлайн мастер NginxСonfig от DigitalOcean</a></li>
+  <li><a href="https://blog.pinterjann.is/ed25519-certificates.html">Create ED25519 certificates for TLS with OpenSSL</a></li>
+  <li><a href="https://habr.com/ru/articles/213741/">Статья на Хабре. Авторизация клиентов в nginx посредством SSL сертификатов</a></li>
+  <li><a href="https://gist.github.com/Soarez/9688998">На английском. How to setup your own CA with OpenSSL</a></li>
+  <li><a href="https://certificatetools.com/">Сформировать CSR на CertificateTools.com X509 Certificate Generator</a></li>
+  <li><a href="https://www.openssl.org/docs/man3.0/man5/x509v3_config.html">Официальная документация OpenSSL x509v3_config по формату сертификатов</a></li>
+  <li><a href="https://www.ibm.com/docs/en/hpvs/1.2.x?topic=reference-openssl-configuration-examples">Инструкция от IBM OpenSSL configuration examples</a></li>
+  <li><a href="https://www.ibm.com/docs/en/hpvs/1.2.x?topic=servers-creating-ca-signed-certificates-monitoring-infrastructure">Инструкция от IBM Creating CA signed certificates for the monitoring infrastructure</a></li>
+  <li><a href="https://sgolubev.ru/openssl-ca/">ЛУЧШАЯ инструкция на русском с сайта Сергея Голубева</a></li>
+  <li><a href="https://garrett.github.io/cockpit-project.github.io/external/wiki/Proxying-Cockpit-over-NGINX">Проксирование cockpit через Nginx</a></li>
+</ul>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      <a href="/tags/#keenetic" class="page__taxonomy-item p-category" rel="tag">keenetic</a><span class="sep">, </span>
+    
+      <a href="/tags/#nginx" class="page__taxonomy-item p-category" rel="tag">nginx</a>
+    
+    </span>
+  </p>
+
+
+
+
+        
+
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time class="dt-published" datetime="2024-05-02T00:00:00+03:00">May 2, 2024</time></p>
+
+      </footer>
+
+      <section class="page__share">
+  
+
+  <a href="https://twitter.com/intent/tweet?text=%D0%9D%D0%B0%D1%81%D1%82%D1%80%D0%BE%D0%B9%D0%BA%D0%B0+nginx+%D0%BD%D0%B0+%D1%80%D0%BE%D1%83%D1%82%D0%B5%D1%80%D0%B5+keenetic%20http%3A%2F%2Flocalhost%3A4000%2F2024%2F05%2F02%2Fnginx_keenetic.html" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <a href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Flocalhost%3A4000%2F2024%2F05%2F02%2Fnginx_keenetic.html" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=http://localhost:4000/2024/05/02/nginx_keenetic.html" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="#" class="pagination--pager disabled">Previous</a>
+    
+    
+      <a href="/2024/07/18/ssl_conf.html" class="pagination--pager" title="Выпуск ssl-сертификата на OpenWRT
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+  </article>
+
+  
+  
+    
+<div class="page__related">
+  
+  <h2 class="page__related-title">You May Also Enjoy</h2>
+  <div class="grid__wrapper">
+    
+      
+      
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/2024/08/04/jekyll_intro.html" rel="permalink">Что есть Jekyll или собственный сайт
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          3 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">
+
+После того, как cloud.ru объявил о своем free tier с бесплатной виртуалкой, то хостить веб-сайт на домашнем роутере перестало иметь смысл. 
+В любом случае ...</p>
+  </article>
+</div>
+
+    
+      
+      
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/2024/07/18/ssl_conf.html" rel="permalink">Выпуск ssl-сертификата на OpenWRT
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          3 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">
+
+Статья написана по причине, что настройка Let’s encrypt для выдачи сертификата для сайта имеет несколько особенностей при использовании OpenWRT прошивки и ...</p>
+  </article>
+</div>
+
+    
+  </div>
+</div>
+
+  
+  
+</div>
+
+      
+    </div>
+
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+
+    
+      
+        
+          <li><a href="https://www.linkedin.com/in/sergeititov/" rel="nofollow noopener noreferrer"><i class="fab fa-brands fa-linkedin" aria-hidden="true"></i> LinkedIn</a></li>
+        
+      
+        
+          <li><a href="https://github.com/stitov" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
+        
+      
+    
+
+    
+      <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+    
+  </ul>
+</div>
+
+<div class="page__footer-copyright">&copy; 2024 <a href="http://localhost:4000">setigate.ru</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+
+
+
+
+
+  </body>
+</html>

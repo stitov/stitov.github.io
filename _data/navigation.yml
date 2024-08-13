@@ -1,0 +1,10 @@
+# main links
+main:
+  - title: "Об авторе"
+    url: /about/
+  - title: "Проекты"
+    url: /projects/
+  - title: "Архив постов"
+    url: /year-archive/
+  - title: "Облако тегов"
+    url: /tags/

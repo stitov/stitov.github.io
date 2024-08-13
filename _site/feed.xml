@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.10.0">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-08-13T20:48:33+03:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">setigate.ru</title><subtitle>Sergei Titov. Заметки, посты, статьи и прочие мысли.</subtitle><author><name>Sergei Titov</name></author><entry><title type="html">Что есть Jekyll или собственный сайт</title><link href="http://localhost:4000/2024/08/04/jekyll_intro.html" rel="alternate" type="text/html" title="Что есть Jekyll или собственный сайт" /><published>2024-08-04T00:00:00+03:00</published><updated>2024-08-04T00:00:00+03:00</updated><id>http://localhost:4000/2024/08/04/jekyll_intro</id><content type="html" xml:base="http://localhost:4000/2024/08/04/jekyll_intro.html"><![CDATA[<style>body {text-align: justify}</style>
+
+<p>После того, как <a href="https://cloud.ru">cloud.ru</a> объявил о своем free tier с бесплатной виртуалкой, то хостить веб-сайт на домашнем роутере перестало иметь смысл. 
+В любом случае 2 Ядра/ 4 Гига + возможность подключить такой же халявный S3 сильно лучше крошек памяти на домашнем роутере. Надежность облачного решения будет повыше, а за белый ip 
+так и так платить. Встал вопрос, какой движок для сайта выбрать.
+Требования были следующие:</p>
+<ul>
+  <li>Решение должны быть бесплатным</li>
+  <li>Относительно распространенным, со своим комьюнити</li>
+  <li>Не тяжелым, т.к ресурсы виртуалки ограничены</li>
+</ul>
+
+<p>Проконсультировавшись с ChatGPT, я быстро отмел Wordpress, как старое и тяжелое решение. Немного посмотрел в сторону Ghost, не понял где там бесплатность. Больше похоже на веб-платформу по подписке, где в UI собираешь страницы. Третьим в шорт-листе был <a href="https://jekyllrb.com/">Jekyll</a>. Что понравилось:</p>
+<ul>
+  <li>Markdown по умолчанию. Весь контент готовится в формате md-разметки, а jekyll сам преобразует в html.</li>
+  <li>Как следствие, полностью статический сайт, никакого php, mysql и прочих node.js</li>
+  <li>Поддерживается гитхабом, точнее Github Pages. Можно сделать зеркало основного сайта в 2 клика.</li>
+  <li>Нет UI, конфиги в формате yaml, для написания статьей сойдет и vim (ну или VS Code)</li>
+</ul>
+
+<p>Минусы вытекают из плюсов:</p>
+<ul>
+  <li>Кому-то может не хватить возможностей Markdown для оформления страниц</li>
+  <li>На статике интернет-магазин не сверстаешь</li>
+  <li>Нет UI, настройки в формате yaml, кому-то будет сложно работать только в консоли</li>
+</ul>
+
+<p>В общем, для небольшого, изредка пополняемого сборника статей, отличное решение, не требовательное к ресурсам и довольно простое. 
+Сам движок Jekyll написан на Ruby, для тех, кто знаком с этим языком программирования, это будет дополнительным плюсом. Я знаком не был, но сложностей с установкой не возникло. 
+Установку делал на wsl2, чтобы не замусоривать основную ОС.</p>
+
+<p>Далее, коротко опишу моменты, с которыми не сразу разобрался, возможно, кому-то будет в полезно.</p>
+
+<h2 id="темы">Темы</h2>
+<p>Из коробки, даже для неприхотливых, шаблон Jekyll представляет довольно печальное зрелище, поэтому вопрос выбора темы стоит остро.
+В интеренете их много - платных, бесплатных. Мне понравилась <a href="https://github.com/mmistakes/minimal-mistakes">minimal-mistakes</a>. Автор уже 10 лет занимается разработкой своего проекта и накопил солидный запас фишек, 
+способный вывести простой сайт на уровень серьезной разработки. Архивы постов, различные группировки по категориям и тегам, seo, несколько поддерживаемых платформ аналитики (есть Яндекс), комментарии, поиск.
+В общем рекомендую. Стуктура каталогов для новичка не сразу очевидна, поэтому советую полностью клонировать репо по ссылке выше, а затем постепенно настраивать его под себя, удаляя то, что не планируете использовать.</p>
+
+<h2 id="структура">Структура</h2>
+<p>Здесь в интернете довольно много информации, лучше обратиться к первоисточнику - официальной документации проекта или шаблона. Коротко упомяну основные:<br />
+  <code class="language-plaintext highlighter-rouge">_config.yml</code> - основной конфигурационный файл, начинать с него.<br />
+  <code class="language-plaintext highlighter-rouge">_posts/</code> - папка с постами, в имени файла сначала идет дата (YYYY-MM-DD), затем краткий заголовок. Внутри поста через тэг <code class="language-plaintext highlighter-rouge">title</code> название переопределяется.<br />
+  <code class="language-plaintext highlighter-rouge">_data/</code> - в принципе что угодно, у меня файл со структурой навигационного меню.<br />
+  <code class="language-plaintext highlighter-rouge">_pages/</code> - прочие страницы, которые не посты, в т.ч. index.html<br />
+  <code class="language-plaintext highlighter-rouge">_layout/</code> - шаблоны верстки страниц, которые задаются на самих страницах тегом, внезапно, <code class="language-plaintext highlighter-rouge">layout</code>.<br />
+  <code class="language-plaintext highlighter-rouge">assets/</code> - лежит основной шаблон css и прочие “активы”, например картинки.</p>
+
+<h2 id="css-стили">CSS стили</h2>
+<p>Находятся в <code class="language-plaintext highlighter-rouge">_sass\minimal-mistakes</code>. Логические блоки разбиты по различным файлам. Можно в дополнение к скину настроить шрифты, цвета, внешний вид меню и т.п.
+С фронтендом я не знаком, поэтому действовал в основном методом <del>тыка</del> реверс-инжиниринга в консоли веб-разработчика Chrome, находя нужный элемент и просматривая, откуда он настраивается.</p>
+
+<p>Я немного изменил шрифты в <code class="language-plaintext highlighter-rouge">_base.css</code>:</p>
+<div class="language-css highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">body</span> <span class="p">{</span>
+  <span class="nl">margin</span><span class="p">:</span> <span class="m">0</span><span class="p">;</span>
+  <span class="nl">padding</span><span class="p">:</span> <span class="m">0</span><span class="p">;</span>
+  <span class="nl">color</span><span class="p">:</span> <span class="err">$</span><span class="n">text-color</span><span class="p">;</span>
+  <span class="nl">font-family</span><span class="p">:</span> <span class="err">$</span><span class="n">global-font-family</span><span class="p">;</span>
+  <span class="nl">font-size</span><span class="p">:</span> <span class="m">16px</span><span class="p">;</span>
+  <span class="nl">font-style</span><span class="p">:</span> <span class="nb">normal</span><span class="p">;</span>
+  <span class="nl">font-weight</span><span class="p">:</span> <span class="m">400</span><span class="p">;</span>
+  <span class="nl">line-height</span><span class="p">:</span> <span class="m">1.55</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+<p>И поиграл с внешним видом меню в <code class="language-plaintext highlighter-rouge">_navigation.scss</code></p>
+
+<h2 id="разработка-и-деплой">Разработка и деплой</h2>
+
+<p>Процесс разработки довольно прост. В принципе, необязательно знать, что такое Gemfile, bunndler и прочие особенности Ruby. Достаточно открыть соседнее окно, перейти в каталог с проектом и выполнить команду:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>bundle <span class="nb">exec </span>jekyll server <span class="nt">-w</span>
+</code></pre></div></div>
+<p>После этого по адресу <code class="language-plaintext highlighter-rouge">http://localhost:4000/</code> будет поднят локальный веб-сервер с вашим сайтом. Любые изменения в файлах проекта отслеживаются и в realtime применяются (кроме правок <code class="language-plaintext highlighter-rouge">_config.yml</code>, для него необходимо перезапускать jekyll server).</p>
+
+<p>Процесс деплоя еще проще, т.к. это статика. Результат “сборки” сохраняется в каталоге <code class="language-plaintext highlighter-rouge">_site</code> проекта. Надо только перенести каталог на боевой сервер. Это можно сделать руками, scp, rsync или любой другой доступной  вам автоматизацией DevOps Pipeline.</p>
+
+<h2 id="полезные-ссылки">Полезные ссылки</h2>
+<p>Продублирую ссылки из текста статьи.</p>
+<ul>
+  <li>Официальная документация Jekyll - <a href="https://jekyllrb.com/">https://jekyllrb.com/</a></li>
+  <li>Гитхаб проекта с темой minimal-mistakes <a href="https://github.com/mmistakes/minimal-mistakes">https://github.com/mmistakes/minimal-mistakes</a></li>
+  <li>Спасибо Сберу за <a href="https://cloud.ru">https://cloud.ru</a></li>
+</ul>]]></content><author><name>Sergei Titov</name></author><category term="jekyll" /><summary type="html"><![CDATA[После того, как cloud.ru объявил о своем free tier с бесплатной виртуалкой, то хостить веб-сайт на домашнем роутере перестало иметь смысл. В любом случае 2 Ядра/ 4 Гига + возможность подключить такой же халявный S3 сильно лучше крошек памяти на домашнем роутере. Надежность облачного решения будет повыше, а за белый ip так и так платить. Встал вопрос, какой движок для сайта выбрать. Требования были следующие: Решение должны быть бесплатным Относительно распространенным, со своим комьюнити Не тяжелым, т.к ресурсы виртуалки ограничены Проконсультировавшись с ChatGPT, я быстро отмел Wordpress, как старое и тяжелое решение. Немного посмотрел в сторону Ghost, не понял где там бесплатность. Больше похоже на веб-платформу по подписке, где в UI собираешь страницы. Третьим в шорт-листе был Jekyll. Что понравилось: Markdown по умолчанию. Весь контент готовится в формате md-разметки, а jekyll сам преобразует в html. Как следствие, полностью статический сайт, никакого php, mysql и прочих node.js Поддерживается гитхабом, точнее Github Pages. Можно сделать зеркало основного сайта в 2 клика. Нет UI, конфиги в формате yaml, для написания статьей сойдет и vim (ну или VS Code) Минусы вытекают из плюсов: Кому-то может не хватить возможностей Markdown для оформления страниц На статике интернет-магазин не сверстаешь Нет UI, настройки в формате yaml, кому-то будет сложно работать только в консоли В общем, для небольшого, изредка пополняемого сборника статей, отличное решение, не требовательное к ресурсам и довольно простое. Сам движок Jekyll написан на Ruby, для тех, кто знаком с этим языком программирования, это будет дополнительным плюсом. Я знаком не был, но сложностей с установкой не возникло. Установку делал на wsl2, чтобы не замусоривать основную ОС. Далее, коротко опишу моменты, с которыми не сразу разобрался, возможно, кому-то будет в полезно. Темы Из коробки, даже для неприхотливых, шаблон Jekyll представляет довольно печальное зрелище, поэтому вопрос выбора темы стоит остро. В интеренете их много - платных, бесплатных. Мне понравилась minimal-mistakes. Автор уже 10 лет занимается разработкой своего проекта и накопил солидный запас фишек, способный вывести простой сайт на уровень серьезной разработки. Архивы постов, различные группировки по категориям и тегам, seo, несколько поддерживаемых платформ аналитики (есть Яндекс), комментарии, поиск. В общем рекомендую. Стуктура каталогов для новичка не сразу очевидна, поэтому советую полностью клонировать репо по ссылке выше, а затем постепенно настраивать его под себя, удаляя то, что не планируете использовать. Структура Здесь в интернете довольно много информации, лучше обратиться к первоисточнику - официальной документации проекта или шаблона. Коротко упомяну основные:   _config.yml - основной конфигурационный файл, начинать с него.   _posts/ - папка с постами, в имени файла сначала идет дата (YYYY-MM-DD), затем краткий заголовок. Внутри поста через тэг title название переопределяется.   _data/ - в принципе что угодно, у меня файл со структурой навигационного меню.   _pages/ - прочие страницы, которые не посты, в т.ч. index.html   _layout/ - шаблоны верстки страниц, которые задаются на самих страницах тегом, внезапно, layout.   assets/ - лежит основной шаблон css и прочие “активы”, например картинки. CSS стили Находятся в _sass\minimal-mistakes. Логические блоки разбиты по различным файлам. Можно в дополнение к скину настроить шрифты, цвета, внешний вид меню и т.п. С фронтендом я не знаком, поэтому действовал в основном методом тыка реверс-инжиниринга в консоли веб-разработчика Chrome, находя нужный элемент и просматривая, откуда он настраивается. Я немного изменил шрифты в _base.css: body { margin: 0; padding: 0; color: $text-color; font-family: $global-font-family; font-size: 16px; font-style: normal; font-weight: 400; line-height: 1.55; } И поиграл с внешним видом меню в _navigation.scss Разработка и деплой Процесс разработки довольно прост. В принципе, необязательно знать, что такое Gemfile, bunndler и прочие особенности Ruby. Достаточно открыть соседнее окно, перейти в каталог с проектом и выполнить команду: bundle exec jekyll server -w После этого по адресу http://localhost:4000/ будет поднят локальный веб-сервер с вашим сайтом. Любые изменения в файлах проекта отслеживаются и в realtime применяются (кроме правок _config.yml, для него необходимо перезапускать jekyll server). Процесс деплоя еще проще, т.к. это статика. Результат “сборки” сохраняется в каталоге _site проекта. Надо только перенести каталог на боевой сервер. Это можно сделать руками, scp, rsync или любой другой доступной вам автоматизацией DevOps Pipeline. Полезные ссылки Продублирую ссылки из текста статьи. Официальная документация Jekyll - https://jekyllrb.com/ Гитхаб проекта с темой minimal-mistakes https://github.com/mmistakes/minimal-mistakes Спасибо Сберу за https://cloud.ru]]></summary></entry><entry><title type="html">Выпуск ssl-сертификата на OpenWRT</title><link href="http://localhost:4000/2024/07/18/ssl_conf.html" rel="alternate" type="text/html" title="Выпуск ssl-сертификата на OpenWRT" /><published>2024-07-18T00:00:00+03:00</published><updated>2024-07-18T00:00:00+03:00</updated><id>http://localhost:4000/2024/07/18/ssl_conf</id><content type="html" xml:base="http://localhost:4000/2024/07/18/ssl_conf.html"><![CDATA[<style>body {text-align: justify}</style>
+
+<p>Статья написана по причине, что настройка Let’s encrypt для выдачи сертификата для сайта имеет несколько особенностей при использовании OpenWRT прошивки и менеджера пакетов opkg, 
+в отличие от стандартнго certbot. Этот достаточно извращенный вариант может понадобиться, если вы решили захостить свой блог на домашнем роутере. В моем случае это Keenetic, 
+белый ip от провайдера прилагается. Инструкция актуальна на июль 2024г.</p>
+<h2 id="установка-пакетов">Установка пакетов</h2>
+
+<p>Пропустим включение и настройку OpenWRT на роутере, это было сделано ранее. Устанавливаем два пакета, второй понадобится для запроса сертификата Let’s encrypt по 443 порту.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>opkg update
+opkg <span class="nb">install </span>uacme uacme-ualpn
+</code></pre></div></div>
+
+<h2 id="проверка-по-http-01">Проверка по http-01</h2>
+
+<p>Стандартный подход предполагает для проверки прав на домен выкладывание текстового файла с определенным именем и токеном внутри по заданному пути сайта.
+Проверка проходит строго по протоколу http (порт 80), и, если вы не успели настроить свой keenetic слушать только 443 порт или готовы временно его открыть, то такой вариант более чем подходит.</p>
+
+<blockquote>
+  <p>Примечание.<br />
+По умолчанию админка keenetic висит на 80 и 443 порту, отдельными командами это можно перенастроить, чтобы ваш порт 0.0.0.0:443 был задействован под сайт.
+А админку оставить слушать 80 порт внутренней сети.</p>
+</blockquote>
+
+<p>Потребуется всего несколько команд:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>uacme <span class="nt">-v</span> <span class="nt">-c</span> /opt/etc/ssl/uacme new
+</code></pre></div></div>
+
+<p>Пoдготовливает окружение и генерирует приватный ключ. А команда</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>uacme <span class="nt">-v</span> <span class="nt">-c</span> /opt/etc/ssl/uacme issue www.your.domain.com
+</code></pre></div></div>
+<p>запускает процедуру выдачи сертифката, где <code class="language-plaintext highlighter-rouge">-c /opt/etc/ssl/uacme</code> каталог, в котором будут размещаться все сертификаты.
+Не забудьте поменять www.your.domain.com на ваш домен в строке выше.</p>
+
+<p>В процессе работы команды вы столкнетесь примерно с таким выводом и ожиданием:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>uacme: <span class="nv">challenge</span><span class="o">=</span>http-01 <span class="nv">ident</span><span class="o">=</span>www.your.domain.com <span class="nv">token</span><span class="o">=</span>kZjqYgAss_sl4XXDfFq-jeQV1_lqsE76v2BoCGegFk4
+<span class="nv">key_auth</span><span class="o">=</span>kZjqYgAss_sl4XXDfFq-jeQV1_lqsE76v2BoCGegFk4.2evcXalKLhAybRuxxE-HkSUihdzQ7ZDAKA9EZYrTXwU
+</code></pre></div></div>
+
+<p>Что означает, что вам необходимо открыть рядом <strong>вторую</strong> консоль и создать в каталоге <code class="language-plaintext highlighter-rouge">.well-known/acme-challenge/</code> файл с именем token и внутрь положить строку 
+key_auth. Путь <code class="language-plaintext highlighter-rouge">.well-known/acme-challenge/</code> создается относительно root директории сайта. 
+Для nginx это параметр <code class="language-plaintext highlighter-rouge">root</code> в <code class="language-plaintext highlighter-rouge">location /</code>. В моем случае этот раздел в nginx.conf выглядит так:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>location / {
+            root   /opt/share/nginx/html;
+            index  index.html;
+        }
+</code></pre></div></div>
+<p>А значит перейдем в корень, создадим каталог (если он еще не создан), и в нем нужный файл.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">cd</span> /opt/share/nginx/html
+<span class="nb">mkdir</span> <span class="nt">-p</span> .well-known/acme-challenge/
+<span class="nb">cd</span> .well-known/acme-challenge/
+<span class="nb">echo</span> <span class="s2">"kZjqYgAss_sl4XXDfFq-jeQV1_lqsE76v2BoCGegFk4.2evcXalKLhAybRuxxE-HkSUihdzQ7ZDAKA9EZYrTXwU"</span> <span class="o">&gt;</span>  kZjqYgAss_sl4XXDfFq-jeQV1_lqsE76v2BoCGegFk4
+</code></pre></div></div>
+<p>После этого вернемся в первую консоль и подтвердим готовность к проверке (y).
+Если все сделано верно, сетевой доступ по 80 порту вашим провайдером по умолчанию не закрыт, и роутер сконфигурирован верно, то в каталоге <code class="language-plaintext highlighter-rouge">/opt/etc/ssl/uacme</code> будут созданы сертификат и приватный ключ к нему.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>/opt/etc/ssl/uacme/www.your.domain.com/cert.pem
+/opt/etc/ssl/uacme/private/www.your.domain.com/key.pem
+</code></pre></div></div>
+
+<p>Эти файлы можно уже прописать в nginx.conf и выполнить релоад (или рестарт) сервиса</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    ssl_certificate         /opt/etc/ssl/uacme/www.your.domain.com/cert.pem;
+    ssl_certificate_key     /opt/etc/ssl/uacme/private/www.your.domain.com/key.pem;
+</code></pre></div></div>
+
+<h2 id="проверка-по-https">Проверка по https</h2>
+
+<p>Если с 80 портом по тем или иным причинам у вас есть сложности, как в моем случае, то можно использовать челендж <code class="language-plaintext highlighter-rouge">tls-alpn-01</code> с ssl на борту. Для этого понадобится второй установленный пакет <strong>uacme-ualpn</strong>.</p>
+
+<p>Проверим куда был установлен пакет</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># opkg files uacme-ualpn</span>
+Package uacme-ualpn <span class="o">(</span>1.7.4-1<span class="o">)</span> is installed on root and has the following files:
+/opt/share/uacme/ualpn.sh
+/opt/sbin/ualpn
+</code></pre></div></div>
+
+<p>Технически, пакет позволяет произвести получение сертифката (и его дальнейшее обновление) без прерывания работы вашего сайта. Для этого перенастраивается nginx на прослушивание порта на локальном интерфейсе, с помощью демона ualpn поднимается небольшой веб-сервер, который слушает 443 порт, проксирует запросы к вашему nginx, а сам в момент челенджа отдает нужную информацию Let’s encrypt. Такой вариант показался для меня излишне громоздким, поэтому я выбрал более простой, с остановкой nginx, получением сертификата и возобновлением работы. Сама процедура занимает несколько секунд, и если такой даунтайм вас устраивает, то можете поступить также.\</p>
+
+<p>Набор команд с комментариями:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>/opt/etc/init.d/S80nginx stop <span class="c"># Остановить nginx</span>
+ualpn <span class="nt">-v</span> <span class="nt">-d</span> <span class="nt">-u</span> nobody:nobody <span class="nt">-c</span> 127.0.0.1@4443 <span class="nt">-S</span> 666 <span class="c"># Запустить демона и перенаправить трафик на несуществующий 4443 порт</span>
+uacme <span class="nt">-v</span> <span class="nt">-c</span> /opt/etc/ssl/uacme <span class="nt">-h</span> /opt/share/uacme/ualpn.sh issue www.your.domain.com <span class="c"># Запустить процесс выдачи</span>
+ualpn <span class="nt">-t</span> <span class="c"># Остановить демона</span>
+/opt/etc/init.d/S80nginx start <span class="c"># Запустить nginx</span>
+</code></pre></div></div>
+<blockquote>
+  <p>Примечание.<br />
+ualpn не работает без ключа -с, поэтому что-то написать в него надо.</p>
+</blockquote>
+
+<p>Процедура <code class="language-plaintext highlighter-rouge">uacme -v -c /opt/etc/ssl/uacme -h /opt/share/uacme/ualpn.sh issue</code> проходит автоматически, подкладывать какие-либо файлы вручную уже не требуется. С точки зрения автоматизации этот вариант даже проще. Аргумент для ключа <code class="language-plaintext highlighter-rouge">-h</code> мы нашли в выводе <code class="language-plaintext highlighter-rouge">opkg files uacme-ualpn</code>.\</p>
+
+<p>Итоговый результат тот же - в каталоге <code class="language-plaintext highlighter-rouge">/opt/etc/ssl/uacme</code> будут созданы сертификат и приватный ключ к нему.</p>
+
+<h2 id="полезные-ссылки">Полезные ссылки</h2>
+<p>Официальные репо использованных пакетов с документацией:</p>
+<ul>
+  <li>http-01 - <a href="https://github.com/ndilieto/uacme?tab=readme-ov-file#uacme">https://github.com/ndilieto/uacme?tab=readme-ov-file#uacme</a></li>
+  <li>tls-alpn-01 - <a href="https://github.com/ndilieto/uacme?tab=readme-ov-file#tls-alpn-01-challenge-support">https://github.com/ndilieto/uacme?tab=readme-ov-file#tls-alpn-01-challenge-support</a></li>
+</ul>
+
+<p>Теория:</p>
+<ul>
+  <li>Виды проверок Let’s encrypt - <a href="https://letsencrypt.org/ru/docs/challenge-types/">https://letsencrypt.org/ru/docs/challenge-types/</a></li>
+</ul>]]></content><author><name>Sergei Titov</name></author><category term="nginx" /><category term="ssl" /><summary type="html"><![CDATA[Статья написана по причине, что настройка Let’s encrypt для выдачи сертификата для сайта имеет несколько особенностей при использовании OpenWRT прошивки и менеджера пакетов opkg, в отличие от стандартнго certbot. Этот достаточно извращенный вариант может понадобиться, если вы решили захостить свой блог на домашнем роутере. В моем случае это Keenetic, белый ip от провайдера прилагается. Инструкция актуальна на июль 2024г. Установка пакетов Пропустим включение и настройку OpenWRT на роутере, это было сделано ранее. Устанавливаем два пакета, второй понадобится для запроса сертификата Let’s encrypt по 443 порту. opkg update opkg install uacme uacme-ualpn Проверка по http-01 Стандартный подход предполагает для проверки прав на домен выкладывание текстового файла с определенным именем и токеном внутри по заданному пути сайта. Проверка проходит строго по протоколу http (порт 80), и, если вы не успели настроить свой keenetic слушать только 443 порт или готовы временно его открыть, то такой вариант более чем подходит. Примечание. По умолчанию админка keenetic висит на 80 и 443 порту, отдельными командами это можно перенастроить, чтобы ваш порт 0.0.0.0:443 был задействован под сайт. А админку оставить слушать 80 порт внутренней сети. Потребуется всего несколько команд: uacme -v -c /opt/etc/ssl/uacme new Пoдготовливает окружение и генерирует приватный ключ. А команда uacme -v -c /opt/etc/ssl/uacme issue www.your.domain.com запускает процедуру выдачи сертифката, где -c /opt/etc/ssl/uacme каталог, в котором будут размещаться все сертификаты. Не забудьте поменять www.your.domain.com на ваш домен в строке выше. В процессе работы команды вы столкнетесь примерно с таким выводом и ожиданием: uacme: challenge=http-01 ident=www.your.domain.com token=kZjqYgAss_sl4XXDfFq-jeQV1_lqsE76v2BoCGegFk4 key_auth=kZjqYgAss_sl4XXDfFq-jeQV1_lqsE76v2BoCGegFk4.2evcXalKLhAybRuxxE-HkSUihdzQ7ZDAKA9EZYrTXwU Что означает, что вам необходимо открыть рядом вторую консоль и создать в каталоге .well-known/acme-challenge/ файл с именем token и внутрь положить строку key_auth. Путь .well-known/acme-challenge/ создается относительно root директории сайта. Для nginx это параметр root в location /. В моем случае этот раздел в nginx.conf выглядит так: location / { root /opt/share/nginx/html; index index.html; } А значит перейдем в корень, создадим каталог (если он еще не создан), и в нем нужный файл. cd /opt/share/nginx/html mkdir -p .well-known/acme-challenge/ cd .well-known/acme-challenge/ echo "kZjqYgAss_sl4XXDfFq-jeQV1_lqsE76v2BoCGegFk4.2evcXalKLhAybRuxxE-HkSUihdzQ7ZDAKA9EZYrTXwU" &gt; kZjqYgAss_sl4XXDfFq-jeQV1_lqsE76v2BoCGegFk4 После этого вернемся в первую консоль и подтвердим готовность к проверке (y). Если все сделано верно, сетевой доступ по 80 порту вашим провайдером по умолчанию не закрыт, и роутер сконфигурирован верно, то в каталоге /opt/etc/ssl/uacme будут созданы сертификат и приватный ключ к нему. /opt/etc/ssl/uacme/www.your.domain.com/cert.pem /opt/etc/ssl/uacme/private/www.your.domain.com/key.pem Эти файлы можно уже прописать в nginx.conf и выполнить релоад (или рестарт) сервиса ssl_certificate /opt/etc/ssl/uacme/www.your.domain.com/cert.pem; ssl_certificate_key /opt/etc/ssl/uacme/private/www.your.domain.com/key.pem; Проверка по https Если с 80 портом по тем или иным причинам у вас есть сложности, как в моем случае, то можно использовать челендж tls-alpn-01 с ssl на борту. Для этого понадобится второй установленный пакет uacme-ualpn. Проверим куда был установлен пакет # opkg files uacme-ualpn Package uacme-ualpn (1.7.4-1) is installed on root and has the following files: /opt/share/uacme/ualpn.sh /opt/sbin/ualpn Технически, пакет позволяет произвести получение сертифката (и его дальнейшее обновление) без прерывания работы вашего сайта. Для этого перенастраивается nginx на прослушивание порта на локальном интерфейсе, с помощью демона ualpn поднимается небольшой веб-сервер, который слушает 443 порт, проксирует запросы к вашему nginx, а сам в момент челенджа отдает нужную информацию Let’s encrypt. Такой вариант показался для меня излишне громоздким, поэтому я выбрал более простой, с остановкой nginx, получением сертификата и возобновлением работы. Сама процедура занимает несколько секунд, и если такой даунтайм вас устраивает, то можете поступить также.\ Набор команд с комментариями: /opt/etc/init.d/S80nginx stop # Остановить nginx ualpn -v -d -u nobody:nobody -c 127.0.0.1@4443 -S 666 # Запустить демона и перенаправить трафик на несуществующий 4443 порт uacme -v -c /opt/etc/ssl/uacme -h /opt/share/uacme/ualpn.sh issue www.your.domain.com # Запустить процесс выдачи ualpn -t # Остановить демона /opt/etc/init.d/S80nginx start # Запустить nginx Примечание. ualpn не работает без ключа -с, поэтому что-то написать в него надо. Процедура uacme -v -c /opt/etc/ssl/uacme -h /opt/share/uacme/ualpn.sh issue проходит автоматически, подкладывать какие-либо файлы вручную уже не требуется. С точки зрения автоматизации этот вариант даже проще. Аргумент для ключа -h мы нашли в выводе opkg files uacme-ualpn.\ Итоговый результат тот же - в каталоге /opt/etc/ssl/uacme будут созданы сертификат и приватный ключ к нему. Полезные ссылки Официальные репо использованных пакетов с документацией: http-01 - https://github.com/ndilieto/uacme?tab=readme-ov-file#uacme tls-alpn-01 - https://github.com/ndilieto/uacme?tab=readme-ov-file#tls-alpn-01-challenge-support Теория: Виды проверок Let’s encrypt - https://letsencrypt.org/ru/docs/challenge-types/]]></summary></entry><entry><title type="html">Настройка nginx на роутере keenetic</title><link href="http://localhost:4000/2024/05/02/nginx_keenetic.html" rel="alternate" type="text/html" title="Настройка nginx на роутере keenetic" /><published>2024-05-02T00:00:00+03:00</published><updated>2024-05-02T00:00:00+03:00</updated><id>http://localhost:4000/2024/05/02/nginx_keenetic</id><content type="html" xml:base="http://localhost:4000/2024/05/02/nginx_keenetic.html"><![CDATA[<style>body {text-align: justify}</style>
+
+<p>Статья описывает установку веб-сервера nginx на роутерах keenetic. Для чего это может быть нужно?
+Если собственный блог страсть как хочется, публичным хостерам типа github pages вы не доверяете, своей “железной” виртуалки дома у вас нет, а облачному провайдеру платить не хочется, 
+то такой вариант вполне возможен.</p>
+
+<p>Помимо установки затрагиваются вопросы настройки nginx для ограниченного доступа к приватным разделам сайта.</p>
+
+<h2 id="настройка-keenetic">Настройка keenetic</h2>
+<p>Вопрос использовать http или https уже давно не стоит, а значит для полноценного сайта вам потребуется освободить 443 порт, который по умолчанию занят админкой keenetic. 
+Необходимо включить в UI админке доступ посредством telnet, и с помощью любого shell клиента попасть на роутер:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>telnet 192.168.1.1 <span class="c"># IP адрес роутера</span>
+Login:
+Password:
+<span class="c"># Переназначение порта, пусть будет 4433, 80 порт также остается</span>
+ip http ssl port 4433
+system configuration save
+</code></pre></div></div>
+
+<h2 id="установка-nginx">Установка nginx</h2>
+
+<p>Там же, в админке установите дополнительные компоненты системы - OPKG, еще я добавил “Модули ядра для поддержки файловых систем”. Описанное верно для версии ядра KeeneticOS 4.1.6.
+Подробная инструкция по <a href="https://help.keenetic.ru/hc/ru/articles/360021888880.html?utm_source=webhelp&amp;utm_campaign=4.00.C.7.0-0&amp;utm_medium=ui_notes&amp;utm_content=controlpanel/opkg">Установке OPKG Entware на встроенную память роутера</a> лежит в официальной документации на сайте Keenetic.</p>
+
+<p>Перейдем к установке пакетов. Также, в консоли, открыв ssh до только что установленного линукса на роутере, обновим репо и поставим необходимое.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>opkg update
+opkg <span class="nb">install </span>nginx-ssl
+opkg <span class="nb">install </span>bash ca-certificates coreutils-mktemp curl diffutils <span class="nb">grep </span>openssl-util openssh-sftp-server
+</code></pre></div></div>
+
+<p>Готово! Осталось скопировать ваш nginx.conf в /opt/etc/nginx/nginx.conf. На сайте DigitalOcean есть удобный мастер по подготовке файла конфигурации с вашими требованиями, 
+ссылки в конце статьи.</p>
+
+<p>Проверим конфигурацию и запустим сервис.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Проверка конфига</span>
+nginx <span class="nt">-t</span>
+<span class="c"># Старт сервиса</span>
+/opt/etc/init.d/S80nginx start
+<span class="c"># Еще пригодится релоад и рестарт</span>
+/opt/etc/init.d/S80nginx reload
+/opt/etc/init.d/S80nginx restart
+</code></pre></div></div>
+
+<h2 id="базовая-аутентификация">Базовая аутентификация</h2>
+
+<p>Базовая аутентифкация входит в стандартную поставку nginx и позволяет закрыть определенные раздела сайта парой логин/пароль. 
+Для чего - решать вам.</p>
+
+<p>Создадим файл с логином и паролем.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">mkdir</span> <span class="nt">-p</span> /opt/root/ca/private/
+<span class="nb">cd</span> /opt/root/ca/private/
+<span class="nb">touch </span>htpasswd
+<span class="c"># Безопасность превыше всего!</span>
+<span class="nb">chmod </span>400 htpasswd
+<span class="nb">chown</span> <span class="nt">-R</span> nobody:root /opt/root/ca/private/
+<span class="c"># Собственно сама пара, вместо my_login подставить свой логин</span>
+<span class="nb">echo</span> <span class="s1">'my_login:'</span> <span class="o">&gt;&gt;</span> /opt/root/ca/private/htpasswd
+<span class="c"># Укажем ключ -5 чтобы использовать хэш-функцию sha-256</span>
+openssl passwd <span class="nt">-5</span> <span class="o">&gt;&gt;</span> /opt/root/ca/private/htpasswd
+</code></pre></div></div>
+
+<p>Теперь можно добавить в ваш nginx.conf в интересующий раздел location строки:</p>
+<div class="language-vim highlighter-rouge"><div class="highlight"><pre class="highlight"><code>auth_basic           <span class="s2">"Private zone"</span>;
+auth_basic_user_file <span class="sr">/opt/</span>root<span class="sr">/ca/</span>private/htpasswd;
+</code></pre></div></div>
+<p>Например, это будет location /private/, тогда при переходе на www.your.domain.com/private вы получите предложение ввести логин и пароль для открытия страницы.</p>
+
+<h2 id="клиентские-сертификаты">Клиентские сертификаты</h2>
+
+<p>Для абсолютного большинства публичных сайтов используется ssl-сертификат сервера, который позволяет через цепочку доверия
+убедиться в подлинности сайта. Да, это не идеально, и зеленый замочек в вашем браузере говорит лишь о том, что сайт принадлежит его владельцу, 
+а что за “Рога И Копыта” им владеют, честная это компания или пирамида-однодневка, система, да и вся отрасль сертификатов вам ответ не дадут.</p>
+
+<p>В корпоративной среде, помимо проверки валидности серверного сертификата клиентом, распространена обратная аутентификация клиента сервером, или, проще говоря,
+вход на веб-ресурс по ssl-сертификату. Для построения такой схемы используются собственные центры сертификации по аналогии с self-signed сертификатами без привлечения
+третьях лиц, <del>которые забили место под солнцем,</del> или доверенных центров сертификации.</p>
+
+<p>Выдачей клиентских сертификатов мы сейчас и займемся.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="c"># Подготовим структуру каталогов</span>
+ <span class="nb">cd</span> /opt/root/
+ <span class="nb">mkdir </span>ca
+ <span class="nb">cd </span>ca/
+ <span class="nb">mkdir </span>certs csr newcerts private
+ <span class="nb">chmod </span>700 private
+ <span class="c"># Каждый клиентский сертификат будет иметь свой номер, здесь определим номерную серию</span>
+ <span class="nb">touch </span>index.txt
+ <span class="nb">echo </span>1000 <span class="o">&gt;</span> serial
+</code></pre></div></div>
+<p><strong>CA profile.</strong><br />
+Подготовим конфигурационный файл conf/ca.conf.</p>
+<div class="language-vim highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span> <span class="k">ca</span> <span class="p">]</span>
+default_ca <span class="p">=</span> CA_default
+
+<span class="p">[</span> CA_default <span class="p">]</span>
+# Directory <span class="nb">and</span> <span class="k">file</span> locations<span class="p">.</span>
+<span class="k">dir</span>               <span class="p">=</span> <span class="sr">/opt/</span>root/<span class="k">ca</span>
+certs             <span class="p">=</span> $<span class="k">dir</span>/certs
+crl_dir           <span class="p">=</span> $<span class="k">dir</span>/crl
+new_certs_dir     <span class="p">=</span> $<span class="k">dir</span>/newcerts
+database          <span class="p">=</span> $<span class="k">dir</span>/<span class="nb">index</span><span class="p">.</span>txt
+serial            <span class="p">=</span> $<span class="k">dir</span>/serial
+RANDFILE          <span class="p">=</span> $<span class="k">dir</span><span class="sr">/private/</span><span class="p">.</span><span class="nb">rand</span>
+
+# The root <span class="nb">key</span> <span class="nb">and</span> root certificate<span class="p">.</span>  
+private_key       <span class="p">=</span> $<span class="k">dir</span><span class="sr">/private/</span><span class="k">ca</span><span class="p">.</span><span class="nb">key</span>  
+certificate       <span class="p">=</span> $<span class="k">dir</span><span class="sr">/certs/</span><span class="k">ca</span><span class="p">.</span>crt
+
+name_opt          <span class="p">=</span> ca_default  
+cert_opt          <span class="p">=</span> ca_default  
+default_days      <span class="p">=</span> <span class="m">365</span>  
+default_md        <span class="p">=</span> <span class="nb">sha256</span>
+<span class="k">preserve</span>          <span class="p">=</span> no  
+policy            <span class="p">=</span> policy
+
+<span class="p">[</span> policy <span class="p">]</span>
+# The root CA should <span class="k">only</span> <span class="k">sign</span> intermediate certificates that <span class="k">match</span><span class="p">.</span>
+# See the POLICY FORMAT section of man <span class="k">ca</span><span class="p">.</span>
+countryName             <span class="p">=</span> <span class="k">match</span>
+stateOrProvinceName     <span class="p">=</span> <span class="k">match</span>
+organizationName        <span class="p">=</span> <span class="k">match</span>
+organizationalUnitName  <span class="p">=</span> optional
+commonName              <span class="p">=</span> supplied
+emailAddress            <span class="p">=</span> optional
+
+
+<span class="p">[</span> req <span class="p">]</span>
+default_md <span class="p">=</span> <span class="nb">sha256</span>
+<span class="nb">prompt</span> <span class="p">=</span> no
+string_mask <span class="p">=</span> utf8only
+x509_extensions <span class="p">=</span> v3_ca
+distinguished_name <span class="p">=</span> req_distinguished_name
+
+<span class="p">[</span> req_distinguished_name <span class="p">]</span>
+commonName <span class="p">=</span> SetiGateCA
+countryName <span class="p">=</span> RU
+stateOrProvinceName <span class="p">=</span> Moscow
+organizationName <span class="p">=</span> SetiGate
+
+<span class="p">[</span> v3_ca <span class="p">]</span>
+basicConstraints <span class="p">=</span> critical<span class="p">,</span>CA<span class="p">:</span>true
+keyUsage<span class="p">=</span>critical<span class="p">,</span>digitalSignature
+subjectKeyIdentifier <span class="p">=</span> hash
+authorityKeyIdentifier <span class="p">=</span> keyid<span class="p">:</span>always<span class="p">,</span>issuer
+
+<span class="p">[</span> server_cert <span class="p">]</span>
+basicConstraints<span class="p">=</span>CA<span class="p">:</span>false
+extendedKeyUsage<span class="p">=</span>serverAuth
+nsCertType <span class="p">=</span> server
+subjectKeyIdentifier <span class="p">=</span> hash
+authorityKeyIdentifier <span class="p">=</span> keyid<span class="p">,</span>issuer<span class="p">:</span>always
+
+<span class="p">[</span> user_cert <span class="p">]</span>
+basicConstraints<span class="p">=</span>CA<span class="p">:</span>false
+extendedKeyUsage<span class="p">=</span>clientAuth
+nsCertType <span class="p">=</span> client
+subjectKeyIdentifier <span class="p">=</span> hash
+authorityKeyIdentifier <span class="p">=</span> keyid<span class="p">,</span>issuer
+</code></pre></div></div>
+<p>Генерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного Certificate Authority (CA).</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Конечно, на эллиптических кривых</span>
+openssl ecparam <span class="nt">-genkey</span> <span class="nt">-name</span> secp384r1 <span class="o">&gt;</span> private/ca.key
+<span class="nb">chmod </span>400 ca.key
+<span class="c"># Срок действия сертификата 10 лет</span>
+openssl req <span class="nt">-config</span> conf/ca.conf <span class="nt">-key</span> private/ca.key <span class="nt">-new</span> <span class="nt">-x509</span> <span class="nt">-days</span> 3650 <span class="nt">-out</span> certs/ca.crt
+openssl x509 <span class="nt">-in</span> certs/ca.crt <span class="nt">-text</span>
+</code></pre></div></div>
+<p><strong>Server Profile.</strong> <br />
+В зависимости от ваших требований этот пункт можно пропустить. На серверный сертификат, полученный таким образом, браузер будет ругаться как на самоподписанный.
+Чтобы сторонние пользователи сайта не видели угрожающих надписей, то можно выпустить серверный сертификат в Let’s Encrypt.</p>
+
+<p>Подготовим конфигурационный файл conf/server.conf.</p>
+<div class="language-vim highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span> req <span class="p">]</span>
+default_md <span class="p">=</span> <span class="nb">sha256</span>
+<span class="nb">prompt</span> <span class="p">=</span> no
+days <span class="p">=</span> <span class="m">365</span>
+string_mask <span class="p">=</span> utf8only
+req_extensions <span class="p">=</span> req_ext
+distinguished_name <span class="p">=</span> req_distinguished_name
+
+<span class="p">[</span> req_distinguished_name <span class="p">]</span>
+commonName <span class="p">=</span> setigate<span class="p">.</span><span class="k">ru</span>
+countryName <span class="p">=</span> RU
+stateOrProvinceName <span class="p">=</span> Moscow
+organizationName <span class="p">=</span> SetiGate
+
+<span class="p">[</span> req_ext <span class="p">]</span>
+#extendedKeyUsage<span class="p">=</span>serverAuth
+#basicConstraints<span class="p">=</span>CA<span class="p">:</span>false
+#nsCertType <span class="p">=</span> server
+#subjectKeyIdentifier <span class="p">=</span> hash
+##authorityKeyIdentifier <span class="p">=</span> keyid<span class="p">,</span>issuer<span class="p">:</span>always
+subjectAltName <span class="p">=</span> @alt_names
+
+<span class="p">[</span> alt_names <span class="p">]</span>
+DNS<span class="p">.</span><span class="m">0</span> <span class="p">=</span> setigate<span class="p">.</span><span class="k">ru</span>
+DNS<span class="p">.</span><span class="m">1</span> <span class="p">=</span> www<span class="p">.</span>setigate<span class="p">.</span><span class="k">ru</span>
+</code></pre></div></div>
+<p>Генерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного CA.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Приватный ключ</span>
+openssl ecparam <span class="nt">-genkey</span> <span class="nt">-name</span> secp384r1 <span class="o">&gt;</span> private/server.key
+<span class="nb">chmod </span>400 server.key
+<span class="c"># Запрос на выпуск сертификата (CSR)</span>
+openssl req <span class="nt">-config</span> conf/server.conf <span class="nt">-key</span> private/server.key <span class="nt">-new</span> <span class="nt">-out</span> csr/server.csr
+<span class="c"># Подписываем CSR нашим CA</span>
+openssl ca <span class="nt">-config</span> conf/ca.conf <span class="nt">-extensions</span> server_cert <span class="nt">-in</span> csr/server.csr <span class="nt">-out</span> certs/server.crt
+</code></pre></div></div>
+
+<p><strong>Client profile.</strong><br />
+Выпуск  клиентского сертификата, по которому будет осуществляться вход на защищенный ресурс.
+Подготовим конфигурационный файл для выпуска сертификата conf/client.conf.</p>
+<div class="language-vim highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">[</span> req <span class="p">]</span>
+default_md <span class="p">=</span> <span class="nb">sha256</span>
+<span class="nb">prompt</span> <span class="p">=</span> no
+days <span class="p">=</span> <span class="m">365</span>
+string_mask <span class="p">=</span> utf8only
+req_extensions <span class="p">=</span> req_ext
+distinguished_name <span class="p">=</span> req_distinguished_name
+
+<span class="p">[</span> req_distinguished_name <span class="p">]</span>
+commonName <span class="p">=</span> Sergei TItov
+countryName <span class="p">=</span> RU
+stateOrProvinceName <span class="p">=</span> Moscow
+organizationName <span class="p">=</span> SetiGate
+
+<span class="p">[</span> req_ext <span class="p">]</span>
+#extendedKeyUsage<span class="p">=</span>clientAuth
+#basicConstraints<span class="p">=</span>CA<span class="p">:</span>false
+#nsCertType <span class="p">=</span> client
+#subjectKeyIdentifier <span class="p">=</span> hash
+#authorityKeyIdentifier <span class="p">=</span> keyid<span class="p">,</span>issuer
+subjectAltName <span class="p">=</span> @alt_names
+
+<span class="p">[</span> alt_names <span class="p">]</span>
+DNS<span class="p">.</span><span class="m">0</span> <span class="p">=</span> setigate<span class="p">.</span><span class="k">ru</span>
+DNS<span class="p">.</span><span class="m">1</span> <span class="p">=</span> www<span class="p">.</span>setigate<span class="p">.</span><span class="k">ru</span>
+</code></pre></div></div>
+<p>Генерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного CA.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Приватный ключ</span>
+openssl ecparam <span class="nt">-genkey</span> <span class="nt">-name</span> secp384r1 <span class="o">&gt;</span> /opt/root/ca/private/client.key
+<span class="nb">chmod </span>400 client.key
+<span class="c"># Запрос на выпуск сертификата (CSR)</span>
+openssl req <span class="nt">-config</span> conf/client.conf  <span class="nt">-key</span> private/client.key  <span class="nt">-new</span> <span class="nt">-out</span> csr/client.csr
+<span class="c"># Подписываем CSR нашим CA</span>
+openssl ca <span class="nt">-config</span> conf/ca.conf <span class="nt">-extensions</span> user_cert <span class="nt">-in</span> csr/client.csr <span class="nt">-out</span> certs/client.crt
+<span class="c"># Преобразуем сертификат и приватный ключ в формат контейнера pkcs12</span>
+openssl pkcs12 <span class="nt">-export</span> <span class="nt">-in</span> certs/client.crt <span class="nt">-inkey</span> private/client.key <span class="nt">-out</span> client.p12 <span class="nt">-passout</span> pass:123
+</code></pre></div></div>
+<blockquote>
+  <p>Примечание.<br />
+Изначально пробовал использовать известную кривую ed25519 для создания ключа, но оказалось, что она не сильно приветствуется, и большинство браузеров не поддерживает этот тип кривой. Алгоритм ed25519 создан энтузиастом, и, видимо, явных дыр в нем нет, в отличие от того, что одобрил <a href="https://www.nist.gov/">NIST</a>. Но это не должо волновать простого владельца личного бложика. Если вам тоже захочеться поэкспериментировать, то вызов openssl немного другой:<br />
+<code class="language-plaintext highlighter-rouge">openssl genpkey -algorithm ed25519 -out test.key</code></p>
+</blockquote>
+
+<p>Полученный сертификат в формате pkcs12 необходимо скачать на компьютер и загрузить в хранилище сертификатов браузера. Теперь можно проверить подключение.
+При открытии защищенной ссылки браузер предложит выбрать для аутентификации загруженный клиентский сертификат.
+Также можно проверить подключение через curl.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>openssl s_client <span class="nt">-connect</span> your.domain.com
+curl <span class="nt">-vk</span> <span class="nt">--key</span> private/client.key <span class="nt">--cert</span> certs/client.crt https://your.domain.com/private/
+</code></pre></div></div>
+
+<h2 id="полезные-ссылки">Полезные ссылки</h2>
+
+<p>Чтобы разобраться в области ssl-сертификатов, понять процесс их выдачи, тонкой конфигурации и, особенно, как создать свой собственный удостоверяющий центр, мне помогли следующие ссылки:</p>
+
+<ul>
+  <li><a href="https://www.digitalocean.com/community/tools/nginx?global.app.lang=ru">Онлайн мастер NginxСonfig от DigitalOcean</a></li>
+  <li><a href="https://blog.pinterjann.is/ed25519-certificates.html">Create ED25519 certificates for TLS with OpenSSL</a></li>
+  <li><a href="https://habr.com/ru/articles/213741/">Статья на Хабре. Авторизация клиентов в nginx посредством SSL сертификатов</a></li>
+  <li><a href="https://gist.github.com/Soarez/9688998">На английском. How to setup your own CA with OpenSSL</a></li>
+  <li><a href="https://certificatetools.com/">Сформировать CSR на CertificateTools.com X509 Certificate Generator</a></li>
+  <li><a href="https://www.openssl.org/docs/man3.0/man5/x509v3_config.html">Официальная документация OpenSSL x509v3_config по формату сертификатов</a></li>
+  <li><a href="https://www.ibm.com/docs/en/hpvs/1.2.x?topic=reference-openssl-configuration-examples">Инструкция от IBM OpenSSL configuration examples</a></li>
+  <li><a href="https://www.ibm.com/docs/en/hpvs/1.2.x?topic=servers-creating-ca-signed-certificates-monitoring-infrastructure">Инструкция от IBM Creating CA signed certificates for the monitoring infrastructure</a></li>
+  <li><a href="https://sgolubev.ru/openssl-ca/">ЛУЧШАЯ инструкция на русском с сайта Сергея Голубева</a></li>
+  <li><a href="https://garrett.github.io/cockpit-project.github.io/external/wiki/Proxying-Cockpit-over-NGINX">Проксирование cockpit через Nginx</a></li>
+</ul>]]></content><author><name>Sergei Titov</name></author><category term="nginx" /><category term="keenetic" /><summary type="html"><![CDATA[Статья описывает установку веб-сервера nginx на роутерах keenetic. Для чего это может быть нужно? Если собственный блог страсть как хочется, публичным хостерам типа github pages вы не доверяете, своей “железной” виртуалки дома у вас нет, а облачному провайдеру платить не хочется, то такой вариант вполне возможен. Помимо установки затрагиваются вопросы настройки nginx для ограниченного доступа к приватным разделам сайта. Настройка keenetic Вопрос использовать http или https уже давно не стоит, а значит для полноценного сайта вам потребуется освободить 443 порт, который по умолчанию занят админкой keenetic. Необходимо включить в UI админке доступ посредством telnet, и с помощью любого shell клиента попасть на роутер: telnet 192.168.1.1 # IP адрес роутера Login: Password: # Переназначение порта, пусть будет 4433, 80 порт также остается ip http ssl port 4433 system configuration save Установка nginx Там же, в админке установите дополнительные компоненты системы - OPKG, еще я добавил “Модули ядра для поддержки файловых систем”. Описанное верно для версии ядра KeeneticOS 4.1.6. Подробная инструкция по Установке OPKG Entware на встроенную память роутера лежит в официальной документации на сайте Keenetic. Перейдем к установке пакетов. Также, в консоли, открыв ssh до только что установленного линукса на роутере, обновим репо и поставим необходимое. opkg update opkg install nginx-ssl opkg install bash ca-certificates coreutils-mktemp curl diffutils grep openssl-util openssh-sftp-server Готово! Осталось скопировать ваш nginx.conf в /opt/etc/nginx/nginx.conf. На сайте DigitalOcean есть удобный мастер по подготовке файла конфигурации с вашими требованиями, ссылки в конце статьи. Проверим конфигурацию и запустим сервис. # Проверка конфига nginx -t # Старт сервиса /opt/etc/init.d/S80nginx start # Еще пригодится релоад и рестарт /opt/etc/init.d/S80nginx reload /opt/etc/init.d/S80nginx restart Базовая аутентификация Базовая аутентифкация входит в стандартную поставку nginx и позволяет закрыть определенные раздела сайта парой логин/пароль. Для чего - решать вам. Создадим файл с логином и паролем. mkdir -p /opt/root/ca/private/ cd /opt/root/ca/private/ touch htpasswd # Безопасность превыше всего! chmod 400 htpasswd chown -R nobody:root /opt/root/ca/private/ # Собственно сама пара, вместо my_login подставить свой логин echo 'my_login:' &gt;&gt; /opt/root/ca/private/htpasswd # Укажем ключ -5 чтобы использовать хэш-функцию sha-256 openssl passwd -5 &gt;&gt; /opt/root/ca/private/htpasswd Теперь можно добавить в ваш nginx.conf в интересующий раздел location строки: auth_basic "Private zone"; auth_basic_user_file /opt/root/ca/private/htpasswd; Например, это будет location /private/, тогда при переходе на www.your.domain.com/private вы получите предложение ввести логин и пароль для открытия страницы. Клиентские сертификаты Для абсолютного большинства публичных сайтов используется ssl-сертификат сервера, который позволяет через цепочку доверия убедиться в подлинности сайта. Да, это не идеально, и зеленый замочек в вашем браузере говорит лишь о том, что сайт принадлежит его владельцу, а что за “Рога И Копыта” им владеют, честная это компания или пирамида-однодневка, система, да и вся отрасль сертификатов вам ответ не дадут. В корпоративной среде, помимо проверки валидности серверного сертификата клиентом, распространена обратная аутентификация клиента сервером, или, проще говоря, вход на веб-ресурс по ssl-сертификату. Для построения такой схемы используются собственные центры сертификации по аналогии с self-signed сертификатами без привлечения третьях лиц, которые забили место под солнцем, или доверенных центров сертификации. Выдачей клиентских сертификатов мы сейчас и займемся. # Подготовим структуру каталогов cd /opt/root/ mkdir ca cd ca/ mkdir certs csr newcerts private chmod 700 private # Каждый клиентский сертификат будет иметь свой номер, здесь определим номерную серию touch index.txt echo 1000 &gt; serial CA profile. Подготовим конфигурационный файл conf/ca.conf. [ ca ] default_ca = CA_default [ CA_default ] # Directory and file locations. dir = /opt/root/ca certs = $dir/certs crl_dir = $dir/crl new_certs_dir = $dir/newcerts database = $dir/index.txt serial = $dir/serial RANDFILE = $dir/private/.rand # The root key and root certificate. private_key = $dir/private/ca.key certificate = $dir/certs/ca.crt name_opt = ca_default cert_opt = ca_default default_days = 365 default_md = sha256 preserve = no policy = policy [ policy ] # The root CA should only sign intermediate certificates that match. # See the POLICY FORMAT section of man ca. countryName = match stateOrProvinceName = match organizationName = match organizationalUnitName = optional commonName = supplied emailAddress = optional [ req ] default_md = sha256 prompt = no string_mask = utf8only x509_extensions = v3_ca distinguished_name = req_distinguished_name [ req_distinguished_name ] commonName = SetiGateCA countryName = RU stateOrProvinceName = Moscow organizationName = SetiGate [ v3_ca ] basicConstraints = critical,CA:true keyUsage=critical,digitalSignature subjectKeyIdentifier = hash authorityKeyIdentifier = keyid:always,issuer [ server_cert ] basicConstraints=CA:false extendedKeyUsage=serverAuth nsCertType = server subjectKeyIdentifier = hash authorityKeyIdentifier = keyid,issuer:always [ user_cert ] basicConstraints=CA:false extendedKeyUsage=clientAuth nsCertType = client subjectKeyIdentifier = hash authorityKeyIdentifier = keyid,issuer Генерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного Certificate Authority (CA). # Конечно, на эллиптических кривых openssl ecparam -genkey -name secp384r1 &gt; private/ca.key chmod 400 ca.key # Срок действия сертификата 10 лет openssl req -config conf/ca.conf -key private/ca.key -new -x509 -days 3650 -out certs/ca.crt openssl x509 -in certs/ca.crt -text Server Profile. В зависимости от ваших требований этот пункт можно пропустить. На серверный сертификат, полученный таким образом, браузер будет ругаться как на самоподписанный. Чтобы сторонние пользователи сайта не видели угрожающих надписей, то можно выпустить серверный сертификат в Let’s Encrypt. Подготовим конфигурационный файл conf/server.conf. [ req ] default_md = sha256 prompt = no days = 365 string_mask = utf8only req_extensions = req_ext distinguished_name = req_distinguished_name [ req_distinguished_name ] commonName = setigate.ru countryName = RU stateOrProvinceName = Moscow organizationName = SetiGate [ req_ext ] #extendedKeyUsage=serverAuth #basicConstraints=CA:false #nsCertType = server #subjectKeyIdentifier = hash ##authorityKeyIdentifier = keyid,issuer:always subjectAltName = @alt_names [ alt_names ] DNS.0 = setigate.ru DNS.1 = www.setigate.ru Генерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного CA. # Приватный ключ openssl ecparam -genkey -name secp384r1 &gt; private/server.key chmod 400 server.key # Запрос на выпуск сертификата (CSR) openssl req -config conf/server.conf -key private/server.key -new -out csr/server.csr # Подписываем CSR нашим CA openssl ca -config conf/ca.conf -extensions server_cert -in csr/server.csr -out certs/server.crt Client profile. Выпуск клиентского сертификата, по которому будет осуществляться вход на защищенный ресурс. Подготовим конфигурационный файл для выпуска сертификата conf/client.conf. [ req ] default_md = sha256 prompt = no days = 365 string_mask = utf8only req_extensions = req_ext distinguished_name = req_distinguished_name [ req_distinguished_name ] commonName = Sergei TItov countryName = RU stateOrProvinceName = Moscow organizationName = SetiGate [ req_ext ] #extendedKeyUsage=clientAuth #basicConstraints=CA:false #nsCertType = client #subjectKeyIdentifier = hash #authorityKeyIdentifier = keyid,issuer subjectAltName = @alt_names [ alt_names ] DNS.0 = setigate.ru DNS.1 = www.setigate.ru Генерация ключей и сертификатов. Создаем приватный ключ, csr и выпускам сертификат от собственного CA. # Приватный ключ openssl ecparam -genkey -name secp384r1 &gt; /opt/root/ca/private/client.key chmod 400 client.key # Запрос на выпуск сертификата (CSR) openssl req -config conf/client.conf -key private/client.key -new -out csr/client.csr # Подписываем CSR нашим CA openssl ca -config conf/ca.conf -extensions user_cert -in csr/client.csr -out certs/client.crt # Преобразуем сертификат и приватный ключ в формат контейнера pkcs12 openssl pkcs12 -export -in certs/client.crt -inkey private/client.key -out client.p12 -passout pass:123 Примечание. Изначально пробовал использовать известную кривую ed25519 для создания ключа, но оказалось, что она не сильно приветствуется, и большинство браузеров не поддерживает этот тип кривой. Алгоритм ed25519 создан энтузиастом, и, видимо, явных дыр в нем нет, в отличие от того, что одобрил NIST. Но это не должо волновать простого владельца личного бложика. Если вам тоже захочеться поэкспериментировать, то вызов openssl немного другой: openssl genpkey -algorithm ed25519 -out test.key Полученный сертификат в формате pkcs12 необходимо скачать на компьютер и загрузить в хранилище сертификатов браузера. Теперь можно проверить подключение. При открытии защищенной ссылки браузер предложит выбрать для аутентификации загруженный клиентский сертификат. Также можно проверить подключение через curl. openssl s_client -connect your.domain.com curl -vk --key private/client.key --cert certs/client.crt https://your.domain.com/private/ Полезные ссылки Чтобы разобраться в области ssl-сертификатов, понять процесс их выдачи, тонкой конфигурации и, особенно, как создать свой собственный удостоверяющий центр, мне помогли следующие ссылки: Онлайн мастер NginxСonfig от DigitalOcean Create ED25519 certificates for TLS with OpenSSL Статья на Хабре. Авторизация клиентов в nginx посредством SSL сертификатов На английском. How to setup your own CA with OpenSSL Сформировать CSR на CertificateTools.com X509 Certificate Generator Официальная документация OpenSSL x509v3_config по формату сертификатов Инструкция от IBM OpenSSL configuration examples Инструкция от IBM Creating CA signed certificates for the monitoring infrastructure ЛУЧШАЯ инструкция на русском с сайта Сергея Голубева Проксирование cockpit через Nginx]]></summary></entry></feed>
