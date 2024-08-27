@@ -10,17 +10,6 @@ logo                    : "/assets/images/logo.png"
 words_per_minute        : 200
 enable_copy_code_button : true
 
-
-# SEO
-analytics:
-  provider: "google-gtag"
-  google:
-    tracking_id: "G-7SW140TMK5"
-    anonymize_ip: false 
-
-yandex_site_verification:
-
-
 # Build settings
 #theme                   : minimal-mistakes-jekyll
 remote_theme            : "mmistakes/minimal-mistakes@4.26.2"
@@ -28,6 +17,15 @@ minimal_mistakes_skin   : "default"
 plugins:
   - jekyll-feed
   - jekyll-include-cache
+
+# SEO
+bing_site_verification: "E2CD4039058A5616B794EBAB1B5BD3B5"
+yandex_site_verification: "9be4310a696705fa"
+
+analytics:
+  provider: "google-gtag"
+  google:
+    tracking_id: "G-7SW140TMK5"
 
 # Site Author
 author:
