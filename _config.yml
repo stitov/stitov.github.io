@@ -11,7 +11,13 @@ words_per_minute        : 200
 enable_copy_code_button : true
 
 
-# SEO Related
+# SEO
+analytics:
+  provider: "google-gtag"
+  google:
+    tracking_id: "G-7SW140TMK5"
+    anonymize_ip: false 
+
 yandex_site_verification:
 
 
