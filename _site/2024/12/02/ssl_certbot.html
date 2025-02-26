@@ -1,0 +1,543 @@
+<!doctype html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.26.2 by Michael Rose
+  Copyright 2013-2024 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+-->
+
+<html lang="en-US" class="no-js">
+  <head>
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>Авторотация ssl-сертификата - setigate.ru</title>
+<meta name="description" content="Короткая заметка, скорее даже для себя, т.к. постов на эту тему написано немало.  Let’s encrypt позволяет выпускать сертификат со сроком жизни не более 3 месяцев. Далее требуется его повторный перевыпуск. Умные и хитрые люди давно автоматизировали этот процесс в виде проекта Certbot. В результате установка и настройка происходит буквально в три команды. На моей Fedora это: sudo dnf update #Выполнять с осторожностью sudo dnf install certbot python3-certbot-nginx -y   Проверка правил firewall, должны быть открыты и 80, и 443 порт сервера. Как-то сузить список адресов, с которых осуществляется проверка, по-простому не удастся, сервер должен быть доступен по обоим портам. sudo firewall-cmd --list-all   Единственная команда, которая выполняет все необходимые действия:    Определяет где-что стоит, пути до сертификатов.   Подготовливает запрос для проверки, размещает необходимые чанки с проверочными секретами   Выпускает сертификаты, прописывает их путь в nginx.conf   Добавляет сервис systemd и ставит в cron расписание обновления!   sudo certbot --nginx   Результат работы будет на экране, если-что-то не так, путь до логов. Проверить работу без перевыпуска сертификатов можно ключом –dry-run.  sudo certbot renew --dry-run   И заодно убедиться в наличии cron: systemctl list-timers systemctl status certbot-renew.timer   Осталось обновить страницу браузера и увидеть зеленый замочек в адресной строке!">
+
+
+  <meta name="author" content="Sergei Titov">
+  
+  <meta property="article:author" content="Sergei Titov">
+  
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="setigate.ru">
+<meta property="og:title" content="Авторотация ssl-сертификата">
+<meta property="og:url" content="https://setigate.ru/2024/12/02/ssl_certbot.html">
+
+
+  <meta property="og:description" content="Короткая заметка, скорее даже для себя, т.к. постов на эту тему написано немало.  Let’s encrypt позволяет выпускать сертификат со сроком жизни не более 3 месяцев. Далее требуется его повторный перевыпуск. Умные и хитрые люди давно автоматизировали этот процесс в виде проекта Certbot. В результате установка и настройка происходит буквально в три команды. На моей Fedora это: sudo dnf update #Выполнять с осторожностью sudo dnf install certbot python3-certbot-nginx -y   Проверка правил firewall, должны быть открыты и 80, и 443 порт сервера. Как-то сузить список адресов, с которых осуществляется проверка, по-простому не удастся, сервер должен быть доступен по обоим портам. sudo firewall-cmd --list-all   Единственная команда, которая выполняет все необходимые действия:    Определяет где-что стоит, пути до сертификатов.   Подготовливает запрос для проверки, размещает необходимые чанки с проверочными секретами   Выпускает сертификаты, прописывает их путь в nginx.conf   Добавляет сервис systemd и ставит в cron расписание обновления!   sudo certbot --nginx   Результат работы будет на экране, если-что-то не так, путь до логов. Проверить работу без перевыпуска сертификатов можно ключом –dry-run.  sudo certbot renew --dry-run   И заодно убедиться в наличии cron: systemctl list-timers systemctl status certbot-renew.timer   Осталось обновить страницу браузера и увидеть зеленый замочек в адресной строке!">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2024-12-02T00:00:00+03:00">
+
+
+
+
+
+
+<link rel="canonical" href="https://setigate.ru/2024/12/02/ssl_certbot.html">
+
+
+
+
+
+
+
+
+  <meta name="msvalidate.01" content="E2CD4039058A5616B794EBAB1B5BD3B5">
+
+
+
+  <meta name="yandex-verification" content="9be4310a696705fa">
+
+
+
+<!-- end _includes/seo.html -->
+
+
+
+  <link href="/feed.xml" type="application/atom+xml" rel="alternate" title="setigate.ru Feed">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script type="text/javascript">
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+  window.enable_copy_code_button = true;
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css"></noscript>
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single" dir="ltr">
+    <nav class="skip-links">
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+          <a class="site-logo" href="/"><img src="/assets/images/logo.png" alt=" "></a>
+        
+        <a class="site-title" href="/">
+           
+          
+        </a>
+        <ul class="visible-links"><li class="masthead__menu-item">
+              <a
+                href="/about/"
+                
+                
+              >Об авторе</a>
+            </li><li class="masthead__menu-item">
+              <a
+                href="/projects/"
+                
+                
+              >Проекты</a>
+            </li><li class="masthead__menu-item">
+              <a
+                href="/year-archive/"
+                
+                
+              >Архив постов</a>
+            </li><li class="masthead__menu-item">
+              <a
+                href="/tags/"
+                
+                
+              >Облако тегов</a>
+            </li></ul>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+
+
+<div id="main" role="main">
+  
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Авторотация ssl-сертификата">
+    <meta itemprop="description" content="Короткая заметка, скорее даже для себя, т.к. постов на эту тему написано немало.Let’s encrypt позволяет выпускать сертификат со сроком жизни не более 3 месяцев.Далее требуется его повторный перевыпуск. Умные и хитрые люди давно автоматизировали этот процесс в виде проекта Certbot. В результате установка и настройка происходит буквально в три команды. На моей Fedora это:sudo dnf update #Выполнять с осторожностьюsudo dnf install certbot python3-certbot-nginx -yПроверка правил firewall, должны быть открыты и 80, и 443 порт сервера. Как-то сузить список адресов, с которых осуществляется проверка, по-простому не удастся, сервер должен быть доступен по обоим портам.sudo firewall-cmd --list-allЕдинственная команда, которая выполняет все необходимые действия:  Определяет где-что стоит, пути до сертификатов.  Подготовливает запрос для проверки, размещает необходимые чанки с проверочными секретами  Выпускает сертификаты, прописывает их путь в nginx.conf  Добавляет сервис systemd и ставит в cron расписание обновления!sudo certbot --nginxРезультат работы будет на экране, если-что-то не так, путь до логов. Проверить работу без перевыпуска сертификатов можно ключом –dry-run.sudo certbot renew --dry-runИ заодно убедиться в наличии cron:systemctl list-timerssystemctl status certbot-renew.timerОсталось обновить страницу браузера и увидеть зеленый замочек в адресной строке!">
+    <meta itemprop="datePublished" content="2024-12-02T00:00:00+03:00">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">
+            <a href="https://setigate.ru/2024/12/02/ssl_certbot.html" itemprop="url">Авторотация ssl-сертификата
+</a>
+          </h1>
+          
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          less than 1 minute read
+        
+      </span>
+    
+  </p>
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+        <style>body {text-align: justify}</style>
+
+<p>Короткая заметка, скорее даже для себя, т.к. постов на эту тему написано немало.</p>
+
+<p>Let’s encrypt позволяет выпускать сертификат со сроком жизни не более 3 месяцев.
+Далее требуется его повторный перевыпуск. Умные и хитрые люди давно автоматизировали этот процесс в виде проекта <a href="https://certbot.eff.org/">Certbot</a>. В результате установка и настройка происходит буквально в три команды. На моей Fedora это:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>dnf update <span class="c">#Выполнять с осторожностью</span>
+<span class="nb">sudo </span>dnf <span class="nb">install </span>certbot python3-certbot-nginx <span class="nt">-y</span>
+</code></pre></div></div>
+
+<p>Проверка правил firewall, должны быть открыты и 80, и 443 порт сервера. Как-то сузить список адресов, с которых осуществляется проверка, по-простому не удастся, сервер должен быть доступен по обоим портам.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>firewall-cmd <span class="nt">--list-all</span>
+</code></pre></div></div>
+
+<p>Единственная команда, которая выполняет все необходимые действия:</p>
+<ul>
+  <li>Определяет где-что стоит, пути до сертификатов.</li>
+  <li>Подготовливает запрос для проверки, размещает необходимые чанки с проверочными секретами</li>
+  <li>Выпускает сертификаты, прописывает их путь в nginx.conf</li>
+  <li>Добавляет сервис systemd и ставит в cron расписание обновления!</li>
+</ul>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>certbot <span class="nt">--nginx</span>
+</code></pre></div></div>
+
+<p>Результат работы будет на экране, если-что-то не так, путь до логов. Проверить работу без перевыпуска сертификатов можно ключом –dry-run.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>certbot renew <span class="nt">--dry-run</span>
+</code></pre></div></div>
+
+<p>И заодно убедиться в наличии cron:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>systemctl list-timers
+systemctl status certbot-renew.timer
+</code></pre></div></div>
+
+<p>Осталось обновить страницу браузера и увидеть зеленый замочек в адресной строке!</p>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      <a href="/tags/#nginx" class="page__taxonomy-item p-category" rel="tag">nginx</a><span class="sep">, </span>
+    
+      <a href="/tags/#ssl" class="page__taxonomy-item p-category" rel="tag">ssl</a>
+    
+    </span>
+  </p>
+
+
+
+
+        
+
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time class="dt-published" datetime="2024-12-02T00:00:00+03:00">December 2, 2024</time></p>
+
+      </footer>
+
+      <section class="page__share">
+  
+
+  <a href="https://twitter.com/intent/tweet?text=%D0%90%D0%B2%D1%82%D0%BE%D1%80%D0%BE%D1%82%D0%B0%D1%86%D0%B8%D1%8F+ssl-%D1%81%D0%B5%D1%80%D1%82%D0%B8%D1%84%D0%B8%D0%BA%D0%B0%D1%82%D0%B0%20https%3A%2F%2Fsetigate.ru%2F2024%2F12%2F02%2Fssl_certbot.html" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fsetigate.ru%2F2024%2F12%2F02%2Fssl_certbot.html" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://setigate.ru/2024/12/02/ssl_certbot.html" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/2024/08/04/jekyll_intro.html" class="pagination--pager" title="Что есть Jekyll или собственный сайт
+">Previous</a>
+    
+    
+      <a href="/2025/02/25/vm_telegram_bot.html" class="pagination--pager" title="Запуск Telegram бота на ВМ
+">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+  </article>
+
+  
+  
+    
+<div class="page__related">
+  
+  <h2 class="page__related-title">You May Also Enjoy</h2>
+  <div class="grid__wrapper">
+    
+      
+      
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/2025/02/25/vm_telegram_bot.html" rel="permalink">Запуск Telegram бота на ВМ
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          1 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">
+
+И-за того, что Youtube стал блочить запросы к его API из РФ, youtube_transcript_bot сломался. Рабочим вариантом в процессе отладки оказалось банальное испо...</p>
+  </article>
+</div>
+
+    
+      
+      
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/2024/08/04/jekyll_intro.html" rel="permalink">Что есть Jekyll или собственный сайт
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          3 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">
+
+После того, как cloud.ru объявил о своем free tier с бесплатной виртуалкой, то хостить веб-сайт на домашнем роутере перестало иметь смысл. 
+В любом случае ...</p>
+  </article>
+</div>
+
+    
+      
+      
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/2024/07/18/ssl_conf.html" rel="permalink">Выпуск ssl-сертификата на OpenWRT
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          3 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">
+
+Статья написана по причине, что настройка Let’s encrypt для выдачи сертификата для сайта имеет несколько особенностей при использовании OpenWRT прошивки и ...</p>
+  </article>
+</div>
+
+    
+      
+      
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/2024/05/02/nginx_keenetic.html" rel="permalink">Настройка nginx на роутере keenetic
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          6 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">
+
+Статья описывает установку веб-сервера nginx на роутерах keenetic. Для чего это может быть нужно?
+Если собственный блог страсть как хочется, публичным хост...</p>
+  </article>
+</div>
+
+    
+  </div>
+</div>
+
+  
+  
+</div>
+
+      
+    </div>
+
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+
+    
+      
+        
+          <li><a href="https://www.linkedin.com/in/sergeititov/" rel="nofollow noopener noreferrer"><i class="fab fa-brands fa-linkedin" aria-hidden="true"></i> LinkedIn</a></li>
+        
+      
+        
+          <li><a href="https://github.com/stitov" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
+        
+      
+    
+
+    
+      <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+    
+  </ul>
+</div>
+
+<div class="page__footer-copyright">&copy; 2025 <a href="https://setigate.ru">setigate.ru</a>. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-7SW140TMK5"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-7SW140TMK5', { 'anonymize_ip': false});
+</script>
+
+
+
+
+
+
+
+
+  </body>
+</html>

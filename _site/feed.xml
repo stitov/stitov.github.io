@@ -1,4 +1,105 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.10.0">Jekyll</generator><link href="https://setigate.ru/feed.xml" rel="self" type="application/atom+xml" /><link href="https://setigate.ru/" rel="alternate" type="text/html" /><updated>2024-08-27T22:19:39+03:00</updated><id>https://setigate.ru/feed.xml</id><title type="html">setigate.ru</title><subtitle>Sergei Titov. Заметки, посты, статьи и прочие мысли.</subtitle><author><name>Sergei Titov</name></author><entry><title type="html">Что есть Jekyll или собственный сайт</title><link href="https://setigate.ru/2024/08/04/jekyll_intro.html" rel="alternate" type="text/html" title="Что есть Jekyll или собственный сайт" /><published>2024-08-04T00:00:00+03:00</published><updated>2024-08-04T00:00:00+03:00</updated><id>https://setigate.ru/2024/08/04/jekyll_intro</id><content type="html" xml:base="https://setigate.ru/2024/08/04/jekyll_intro.html"><![CDATA[<style>body {text-align: justify}</style>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.10.0">Jekyll</generator><link href="https://setigate.ru/feed.xml" rel="self" type="application/atom+xml" /><link href="https://setigate.ru/" rel="alternate" type="text/html" /><updated>2025-02-26T23:03:45+03:00</updated><id>https://setigate.ru/feed.xml</id><title type="html">setigate.ru</title><subtitle>Sergei Titov. Заметки, посты, статьи и прочие мысли.</subtitle><author><name>Sergei Titov</name></author><entry><title type="html">Запуск Telegram бота на ВМ</title><link href="https://setigate.ru/2025/02/25/vm_telegram_bot.html" rel="alternate" type="text/html" title="Запуск Telegram бота на ВМ" /><published>2025-02-25T00:00:00+03:00</published><updated>2025-02-25T00:00:00+03:00</updated><id>https://setigate.ru/2025/02/25/vm_telegram_bot</id><content type="html" xml:base="https://setigate.ru/2025/02/25/vm_telegram_bot.html"><![CDATA[<style>body {text-align: justify}</style>
+
+<p>И-за того, что Youtube стал блочить запросы к его API из РФ, <a href="https://t.me/youtube_transcript_bot">youtube_transcript_bot</a> сломался. Рабочим вариантом в процессе отладки оказалось банальное использование VPN. После некоторых попыток прикрутить vpn к контейнеру было решено перенести приложение на обычную виртуальную машину (ВМ).</p>
+
+<p>Далее, что было сделано.</p>
+
+<p>Поставим питон на ВМ</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>dnf update
+<span class="nb">sudo </span>dnf <span class="nb">install</span> <span class="nt">-y</span> python3.12
+</code></pre></div></div>
+
+<p>Так как в быту я пользуюсь adGuard VPN, и у них есть клиент для linux, то далее установим adGuard for linux по официальной инструкции.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo</span> <span class="nt">-s</span>
+curl <span class="nt">-fsSL</span> https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/release/install.sh <span class="nt">-o</span> /root/adguard.sh
+<span class="nb">chmod</span> +x /root/adguard.sh
+/root/adguard.sh
+</code></pre></div></div>
+<p>Скрипт чуть-чуть пошуршит, после установки бинарник AdGuard VPN CLI будет доступен в /opt/adguardvpn_cli/adguardvpn-cli</p>
+
+<p>Бот будет запускаться под отдельным пользователем, создаем его, настраиваем виртуальное окружение и подгружаем необходимые библиотеки для работы.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>useradd <span class="nt">-m</span> <span class="nt">-s</span> /bin/bash youtube_transcript_bot
+su youtube_transcript_bot
+python3.12 <span class="nt">-m</span> venv ~/venv
+venv/bin/pip <span class="nb">install</span> <span class="nt">--no-cache-dir</span> <span class="nt">-f</span> requirements.txt
+</code></pre></div></div>
+<p>Создаем в домашнем каталоге бота папку app и копируем в нее файлы приложения, не забывая выставить соответствующие права (chown) на файлы.</p>
+
+<p>Создаем два системных сервиса. Первый для VPN, второй - запуск приложения. <br />
+Сервис /etc/systemd/system/adguard-vpn.service. В /etc/adguard.conf хранится логин и пароль для авторизации. Вторая команда поднимает туннель до ближайшего сервера с минимальным latency.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>Unit]
+<span class="nv">Description</span><span class="o">=</span>AdGuard VPN Connection
+<span class="nv">After</span><span class="o">=</span>network.target
+<span class="nv">Wants</span><span class="o">=</span>network-online.target
+
+<span class="o">[</span>Service]
+<span class="nv">Type</span><span class="o">=</span>oneshot
+<span class="nv">ExecStart</span><span class="o">=</span>/bin/bash <span class="nt">-c</span> <span class="s1">'source /etc/adguard.conf \
+    &amp;&amp; /opt/adguardvpn_cli/adguardvpn-cli login -u "$VPN_USER" -p "$VPN_PASS" \
+    &amp;&amp; /opt/adguardvpn_cli/adguardvpn-cli connect -y'</span>
+<span class="nv">ExecStop</span><span class="o">=</span>/opt/adguardvpn_cli/adguardvpn-cli disconnect
+<span class="nv">RemainAfterExit</span><span class="o">=</span><span class="nb">true</span>
+
+<span class="o">[</span>Install]
+<span class="nv">WantedBy</span><span class="o">=</span>multi-user.target
+</code></pre></div></div>
+<p>Сервис /etc/systemd/system/youtube-transcript-bot.service. Зависит и запускается после adguard-vpn.service. Если упал, поднимается всегда.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>Unit]
+<span class="nv">Description</span><span class="o">=</span>Youtube Transcript Bot
+<span class="nv">After</span><span class="o">=</span>adguard-vpn.service
+<span class="nv">Requires</span><span class="o">=</span>adguard-vpn.service
+
+<span class="o">[</span>Service]
+<span class="nv">User</span><span class="o">=</span>youtube_transcript_bot
+<span class="nv">WorkingDirectory</span><span class="o">=</span>/home/youtube_transcript_bot/app
+<span class="nv">ExecStart</span><span class="o">=</span>/bin/bash <span class="nt">-c</span> <span class="s2">"source /home/youtube_transcript_bot/venv/bin/activate &amp;&amp; exec python telegram_bot.py"</span>
+<span class="nv">Restart</span><span class="o">=</span>always
+
+<span class="o">[</span>Install]
+<span class="nv">WantedBy</span><span class="o">=</span>multi-user.target
+</code></pre></div></div>
+
+<p>И стандартный набор для автозапуска</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>systemctl daemon-reload
+<span class="nb">sudo </span>systemctl <span class="nb">enable </span>adguard-vpn
+<span class="nb">sudo </span>systemctl start adguard-vpn
+</code></pre></div></div>
+<p>Аналогичные команды с youtube-transcript-bot.service. Готово!</p>]]></content><author><name>Sergei Titov</name></author><category term="bot" /><category term="vm" /><summary type="html"><![CDATA[И-за того, что Youtube стал блочить запросы к его API из РФ, youtube_transcript_bot сломался. Рабочим вариантом в процессе отладки оказалось банальное использование VPN. После некоторых попыток прикрутить vpn к контейнеру было решено перенести приложение на обычную виртуальную машину (ВМ). Далее, что было сделано. Поставим питон на ВМ sudo dnf update sudo dnf install -y python3.12 Так как в быту я пользуюсь adGuard VPN, и у них есть клиент для linux, то далее установим adGuard for linux по официальной инструкции. sudo -s curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/release/install.sh -o /root/adguard.sh chmod +x /root/adguard.sh /root/adguard.sh Скрипт чуть-чуть пошуршит, после установки бинарник AdGuard VPN CLI будет доступен в /opt/adguardvpn_cli/adguardvpn-cli Бот будет запускаться под отдельным пользователем, создаем его, настраиваем виртуальное окружение и подгружаем необходимые библиотеки для работы. sudo useradd -m -s /bin/bash youtube_transcript_bot su youtube_transcript_bot python3.12 -m venv ~/venv venv/bin/pip install --no-cache-dir -f requirements.txt Создаем в домашнем каталоге бота папку app и копируем в нее файлы приложения, не забывая выставить соответствующие права (chown) на файлы. Создаем два системных сервиса. Первый для VPN, второй - запуск приложения. Сервис /etc/systemd/system/adguard-vpn.service. В /etc/adguard.conf хранится логин и пароль для авторизации. Вторая команда поднимает туннель до ближайшего сервера с минимальным latency. [Unit] Description=AdGuard VPN Connection After=network.target Wants=network-online.target [Service] Type=oneshot ExecStart=/bin/bash -c 'source /etc/adguard.conf \ &amp;&amp; /opt/adguardvpn_cli/adguardvpn-cli login -u "$VPN_USER" -p "$VPN_PASS" \ &amp;&amp; /opt/adguardvpn_cli/adguardvpn-cli connect -y' ExecStop=/opt/adguardvpn_cli/adguardvpn-cli disconnect RemainAfterExit=true [Install] WantedBy=multi-user.target Сервис /etc/systemd/system/youtube-transcript-bot.service. Зависит и запускается после adguard-vpn.service. Если упал, поднимается всегда. [Unit] Description=Youtube Transcript Bot After=adguard-vpn.service Requires=adguard-vpn.service [Service] User=youtube_transcript_bot WorkingDirectory=/home/youtube_transcript_bot/app ExecStart=/bin/bash -c "source /home/youtube_transcript_bot/venv/bin/activate &amp;&amp; exec python telegram_bot.py" Restart=always [Install] WantedBy=multi-user.target И стандартный набор для автозапуска sudo systemctl daemon-reload sudo systemctl enable adguard-vpn sudo systemctl start adguard-vpn Аналогичные команды с youtube-transcript-bot.service. Готово!]]></summary></entry><entry><title type="html">Авторотация ssl-сертификата</title><link href="https://setigate.ru/2024/12/02/ssl_certbot.html" rel="alternate" type="text/html" title="Авторотация ssl-сертификата" /><published>2024-12-02T00:00:00+03:00</published><updated>2024-12-02T00:00:00+03:00</updated><id>https://setigate.ru/2024/12/02/ssl_certbot</id><content type="html" xml:base="https://setigate.ru/2024/12/02/ssl_certbot.html"><![CDATA[<style>body {text-align: justify}</style>
+
+<p>Короткая заметка, скорее даже для себя, т.к. постов на эту тему написано немало.</p>
+
+<p>Let’s encrypt позволяет выпускать сертификат со сроком жизни не более 3 месяцев.
+Далее требуется его повторный перевыпуск. Умные и хитрые люди давно автоматизировали этот процесс в виде проекта <a href="https://certbot.eff.org/">Certbot</a>. В результате установка и настройка происходит буквально в три команды. На моей Fedora это:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>dnf update <span class="c">#Выполнять с осторожностью</span>
+<span class="nb">sudo </span>dnf <span class="nb">install </span>certbot python3-certbot-nginx <span class="nt">-y</span>
+</code></pre></div></div>
+
+<p>Проверка правил firewall, должны быть открыты и 80, и 443 порт сервера. Как-то сузить список адресов, с которых осуществляется проверка, по-простому не удастся, сервер должен быть доступен по обоим портам.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>firewall-cmd <span class="nt">--list-all</span>
+</code></pre></div></div>
+
+<p>Единственная команда, которая выполняет все необходимые действия:</p>
+<ul>
+  <li>Определяет где-что стоит, пути до сертификатов.</li>
+  <li>Подготовливает запрос для проверки, размещает необходимые чанки с проверочными секретами</li>
+  <li>Выпускает сертификаты, прописывает их путь в nginx.conf</li>
+  <li>Добавляет сервис systemd и ставит в cron расписание обновления!</li>
+</ul>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>certbot <span class="nt">--nginx</span>
+</code></pre></div></div>
+
+<p>Результат работы будет на экране, если-что-то не так, путь до логов. Проверить работу без перевыпуска сертификатов можно ключом –dry-run.</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>certbot renew <span class="nt">--dry-run</span>
+</code></pre></div></div>
+
+<p>И заодно убедиться в наличии cron:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>systemctl list-timers
+systemctl status certbot-renew.timer
+</code></pre></div></div>
+
+<p>Осталось обновить страницу браузера и увидеть зеленый замочек в адресной строке!</p>]]></content><author><name>Sergei Titov</name></author><category term="nginx" /><category term="ssl" /><summary type="html"><![CDATA[Короткая заметка, скорее даже для себя, т.к. постов на эту тему написано немало. Let’s encrypt позволяет выпускать сертификат со сроком жизни не более 3 месяцев. Далее требуется его повторный перевыпуск. Умные и хитрые люди давно автоматизировали этот процесс в виде проекта Certbot. В результате установка и настройка происходит буквально в три команды. На моей Fedora это: sudo dnf update #Выполнять с осторожностью sudo dnf install certbot python3-certbot-nginx -y Проверка правил firewall, должны быть открыты и 80, и 443 порт сервера. Как-то сузить список адресов, с которых осуществляется проверка, по-простому не удастся, сервер должен быть доступен по обоим портам. sudo firewall-cmd --list-all Единственная команда, которая выполняет все необходимые действия: Определяет где-что стоит, пути до сертификатов. Подготовливает запрос для проверки, размещает необходимые чанки с проверочными секретами Выпускает сертификаты, прописывает их путь в nginx.conf Добавляет сервис systemd и ставит в cron расписание обновления! sudo certbot --nginx Результат работы будет на экране, если-что-то не так, путь до логов. Проверить работу без перевыпуска сертификатов можно ключом –dry-run. sudo certbot renew --dry-run И заодно убедиться в наличии cron: systemctl list-timers systemctl status certbot-renew.timer Осталось обновить страницу браузера и увидеть зеленый замочек в адресной строке!]]></summary></entry><entry><title type="html">Что есть Jekyll или собственный сайт</title><link href="https://setigate.ru/2024/08/04/jekyll_intro.html" rel="alternate" type="text/html" title="Что есть Jekyll или собственный сайт" /><published>2024-08-04T00:00:00+03:00</published><updated>2024-08-04T00:00:00+03:00</updated><id>https://setigate.ru/2024/08/04/jekyll_intro</id><content type="html" xml:base="https://setigate.ru/2024/08/04/jekyll_intro.html"><![CDATA[<style>body {text-align: justify}</style>
 
 <p>После того, как <a href="https://cloud.ru">cloud.ru</a> объявил о своем free tier с бесплатной виртуалкой, то хостить веб-сайт на домашнем роутере перестало иметь смысл. 
 В любом случае 2 Ядра/ 4 Гига + возможность подключить такой же халявный S3 сильно лучше крошек памяти на домашнем роутере. Надежность облачного решения будет повыше, а за белый ip 

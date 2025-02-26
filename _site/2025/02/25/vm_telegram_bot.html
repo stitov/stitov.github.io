@@ -1,0 +1,575 @@
+<!doctype html>
+<!--
+  Minimal Mistakes Jekyll Theme 4.26.2 by Michael Rose
+  Copyright 2013-2024 Michael Rose - mademistakes.com | @mmistakes
+  Free for personal and commercial use under the MIT license
+  https://github.com/mmistakes/minimal-mistakes/blob/master/LICENSE
+-->
+
+<html lang="en-US" class="no-js">
+  <head>
+    <meta charset="utf-8">
+
+<!-- begin _includes/seo.html --><title>Запуск Telegram бота на ВМ - setigate.ru</title>
+<meta name="description" content="И-за того, что Youtube стал блочить запросы к его API из РФ, youtube_transcript_bot сломался. Рабочим вариантом в процессе отладки оказалось банальное использование VPN. После некоторых попыток прикрутить vpn к контейнеру было решено перенести приложение на обычную виртуальную машину (ВМ).  Далее, что было сделано.  Поставим питон на ВМ sudo dnf update sudo dnf install -y python3.12   Так как в быту я пользуюсь adGuard VPN, и у них есть клиент для linux, то далее установим adGuard for linux по официальной инструкции. sudo -s curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/release/install.sh -o /root/adguard.sh chmod +x /root/adguard.sh /root/adguard.sh  Скрипт чуть-чуть пошуршит, после установки бинарник AdGuard VPN CLI будет доступен в /opt/adguardvpn_cli/adguardvpn-cli  Бот будет запускаться под отдельным пользователем, создаем его, настраиваем виртуальное окружение и подгружаем необходимые библиотеки для работы. sudo useradd -m -s /bin/bash youtube_transcript_bot su youtube_transcript_bot python3.12 -m venv ~/venv venv/bin/pip install --no-cache-dir -f requirements.txt  Создаем в домашнем каталоге бота папку app и копируем в нее файлы приложения, не забывая выставить соответствующие права (chown) на файлы.  Создаем два системных сервиса. Первый для VPN, второй - запуск приложения.  Сервис /etc/systemd/system/adguard-vpn.service. В /etc/adguard.conf хранится логин и пароль для авторизации. Вторая команда поднимает туннель до ближайшего сервера с минимальным latency. [Unit] Description=AdGuard VPN Connection After=network.target Wants=network-online.target  [Service] Type=oneshot ExecStart=/bin/bash -c &#39;source /etc/adguard.conf \     &amp;&amp; /opt/adguardvpn_cli/adguardvpn-cli login -u &quot;$VPN_USER&quot; -p &quot;$VPN_PASS&quot; \     &amp;&amp; /opt/adguardvpn_cli/adguardvpn-cli connect -y&#39; ExecStop=/opt/adguardvpn_cli/adguardvpn-cli disconnect RemainAfterExit=true  [Install] WantedBy=multi-user.target  Сервис /etc/systemd/system/youtube-transcript-bot.service. Зависит и запускается после adguard-vpn.service. Если упал, поднимается всегда. [Unit] Description=Youtube Transcript Bot After=adguard-vpn.service Requires=adguard-vpn.service  [Service] User=youtube_transcript_bot WorkingDirectory=/home/youtube_transcript_bot/app ExecStart=/bin/bash -c &quot;source /home/youtube_transcript_bot/venv/bin/activate &amp;&amp; exec python telegram_bot.py&quot; Restart=always  [Install] WantedBy=multi-user.target   И стандартный набор для автозапуска sudo systemctl daemon-reload sudo systemctl enable adguard-vpn sudo systemctl start adguard-vpn  Аналогичные команды с youtube-transcript-bot.service. Готово!">
+
+
+  <meta name="author" content="Sergei Titov">
+  
+  <meta property="article:author" content="Sergei Titov">
+  
+
+
+<meta property="og:type" content="article">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="setigate.ru">
+<meta property="og:title" content="Запуск Telegram бота на ВМ">
+<meta property="og:url" content="https://setigate.ru/2025/02/25/vm_telegram_bot.html">
+
+
+  <meta property="og:description" content="И-за того, что Youtube стал блочить запросы к его API из РФ, youtube_transcript_bot сломался. Рабочим вариантом в процессе отладки оказалось банальное использование VPN. После некоторых попыток прикрутить vpn к контейнеру было решено перенести приложение на обычную виртуальную машину (ВМ).  Далее, что было сделано.  Поставим питон на ВМ sudo dnf update sudo dnf install -y python3.12   Так как в быту я пользуюсь adGuard VPN, и у них есть клиент для linux, то далее установим adGuard for linux по официальной инструкции. sudo -s curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/release/install.sh -o /root/adguard.sh chmod +x /root/adguard.sh /root/adguard.sh  Скрипт чуть-чуть пошуршит, после установки бинарник AdGuard VPN CLI будет доступен в /opt/adguardvpn_cli/adguardvpn-cli  Бот будет запускаться под отдельным пользователем, создаем его, настраиваем виртуальное окружение и подгружаем необходимые библиотеки для работы. sudo useradd -m -s /bin/bash youtube_transcript_bot su youtube_transcript_bot python3.12 -m venv ~/venv venv/bin/pip install --no-cache-dir -f requirements.txt  Создаем в домашнем каталоге бота папку app и копируем в нее файлы приложения, не забывая выставить соответствующие права (chown) на файлы.  Создаем два системных сервиса. Первый для VPN, второй - запуск приложения.  Сервис /etc/systemd/system/adguard-vpn.service. В /etc/adguard.conf хранится логин и пароль для авторизации. Вторая команда поднимает туннель до ближайшего сервера с минимальным latency. [Unit] Description=AdGuard VPN Connection After=network.target Wants=network-online.target  [Service] Type=oneshot ExecStart=/bin/bash -c &#39;source /etc/adguard.conf \     &amp;&amp; /opt/adguardvpn_cli/adguardvpn-cli login -u &quot;$VPN_USER&quot; -p &quot;$VPN_PASS&quot; \     &amp;&amp; /opt/adguardvpn_cli/adguardvpn-cli connect -y&#39; ExecStop=/opt/adguardvpn_cli/adguardvpn-cli disconnect RemainAfterExit=true  [Install] WantedBy=multi-user.target  Сервис /etc/systemd/system/youtube-transcript-bot.service. Зависит и запускается после adguard-vpn.service. Если упал, поднимается всегда. [Unit] Description=Youtube Transcript Bot After=adguard-vpn.service Requires=adguard-vpn.service  [Service] User=youtube_transcript_bot WorkingDirectory=/home/youtube_transcript_bot/app ExecStart=/bin/bash -c &quot;source /home/youtube_transcript_bot/venv/bin/activate &amp;&amp; exec python telegram_bot.py&quot; Restart=always  [Install] WantedBy=multi-user.target   И стандартный набор для автозапуска sudo systemctl daemon-reload sudo systemctl enable adguard-vpn sudo systemctl start adguard-vpn  Аналогичные команды с youtube-transcript-bot.service. Готово!">
+
+
+
+
+
+
+
+  <meta property="article:published_time" content="2025-02-25T00:00:00+03:00">
+
+
+
+
+
+
+<link rel="canonical" href="https://setigate.ru/2025/02/25/vm_telegram_bot.html">
+
+
+
+
+
+
+
+
+  <meta name="msvalidate.01" content="E2CD4039058A5616B794EBAB1B5BD3B5">
+
+
+
+  <meta name="yandex-verification" content="9be4310a696705fa">
+
+
+
+<!-- end _includes/seo.html -->
+
+
+
+  <link href="/feed.xml" type="application/atom+xml" rel="alternate" title="setigate.ru Feed">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script type="text/javascript">
+  document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/g, '') + ' js ';
+  window.enable_copy_code_button = true;
+</script>
+
+<!-- For all browsers -->
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@latest/css/all.min.css"></noscript>
+
+
+
+    <!-- start custom head snippets -->
+
+<!-- insert favicons. use https://realfavicongenerator.net/ -->
+
+<!-- end custom head snippets -->
+
+  </head>
+
+  <body class="layout--single" dir="ltr">
+    <nav class="skip-links">
+  <ul>
+    <li><a href="#site-nav" class="screen-reader-shortcut">Skip to primary navigation</a></li>
+    <li><a href="#main" class="screen-reader-shortcut">Skip to content</a></li>
+    <li><a href="#footer" class="screen-reader-shortcut">Skip to footer</a></li>
+  </ul>
+</nav>
+
+    
+
+<div class="masthead">
+  <div class="masthead__inner-wrap">
+    <div class="masthead__menu">
+      <nav id="site-nav" class="greedy-nav">
+        
+          <a class="site-logo" href="/"><img src="/assets/images/logo.png" alt=" "></a>
+        
+        <a class="site-title" href="/">
+           
+          
+        </a>
+        <ul class="visible-links"><li class="masthead__menu-item">
+              <a
+                href="/about/"
+                
+                
+              >Об авторе</a>
+            </li><li class="masthead__menu-item">
+              <a
+                href="/projects/"
+                
+                
+              >Проекты</a>
+            </li><li class="masthead__menu-item">
+              <a
+                href="/year-archive/"
+                
+                
+              >Архив постов</a>
+            </li><li class="masthead__menu-item">
+              <a
+                href="/tags/"
+                
+                
+              >Облако тегов</a>
+            </li></ul>
+        
+        <button class="greedy-nav__toggle hidden" type="button">
+          <span class="visually-hidden">Toggle menu</span>
+          <div class="navicon"></div>
+        </button>
+        <ul class="hidden-links hidden"></ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+
+    <div class="initial-content">
+      
+
+
+
+
+
+<div id="main" role="main">
+  
+
+
+  <article class="page" itemscope itemtype="https://schema.org/CreativeWork">
+    <meta itemprop="headline" content="Запуск Telegram бота на ВМ">
+    <meta itemprop="description" content="И-за того, что Youtube стал блочить запросы к его API из РФ, youtube_transcript_bot сломался. Рабочим вариантом в процессе отладки оказалось банальное использование VPN. После некоторых попыток прикрутить vpn к контейнеру было решено перенести приложение на обычную виртуальную машину (ВМ).Далее, что было сделано.Поставим питон на ВМsudo dnf updatesudo dnf install -y python3.12Так как в быту я пользуюсь adGuard VPN, и у них есть клиент для linux, то далее установим adGuard for linux по официальной инструкции.sudo -scurl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/release/install.sh -o /root/adguard.shchmod +x /root/adguard.sh/root/adguard.shСкрипт чуть-чуть пошуршит, после установки бинарник AdGuard VPN CLI будет доступен в /opt/adguardvpn_cli/adguardvpn-cliБот будет запускаться под отдельным пользователем, создаем его, настраиваем виртуальное окружение и подгружаем необходимые библиотеки для работы.sudo useradd -m -s /bin/bash youtube_transcript_botsu youtube_transcript_botpython3.12 -m venv ~/venvvenv/bin/pip install --no-cache-dir -f requirements.txtСоздаем в домашнем каталоге бота папку app и копируем в нее файлы приложения, не забывая выставить соответствующие права (chown) на файлы.Создаем два системных сервиса. Первый для VPN, второй - запуск приложения. Сервис /etc/systemd/system/adguard-vpn.service. В /etc/adguard.conf хранится логин и пароль для авторизации. Вторая команда поднимает туннель до ближайшего сервера с минимальным latency.[Unit]Description=AdGuard VPN ConnectionAfter=network.targetWants=network-online.target[Service]Type=oneshotExecStart=/bin/bash -c &#39;source /etc/adguard.conf \    &amp;&amp; /opt/adguardvpn_cli/adguardvpn-cli login -u &quot;$VPN_USER&quot; -p &quot;$VPN_PASS&quot; \    &amp;&amp; /opt/adguardvpn_cli/adguardvpn-cli connect -y&#39;ExecStop=/opt/adguardvpn_cli/adguardvpn-cli disconnectRemainAfterExit=true[Install]WantedBy=multi-user.targetСервис /etc/systemd/system/youtube-transcript-bot.service. Зависит и запускается после adguard-vpn.service. Если упал, поднимается всегда.[Unit]Description=Youtube Transcript BotAfter=adguard-vpn.serviceRequires=adguard-vpn.service[Service]User=youtube_transcript_botWorkingDirectory=/home/youtube_transcript_bot/appExecStart=/bin/bash -c &quot;source /home/youtube_transcript_bot/venv/bin/activate &amp;&amp; exec python telegram_bot.py&quot;Restart=always[Install]WantedBy=multi-user.targetИ стандартный набор для автозапускаsudo systemctl daemon-reloadsudo systemctl enable adguard-vpnsudo systemctl start adguard-vpnАналогичные команды с youtube-transcript-bot.service. Готово!">
+    <meta itemprop="datePublished" content="2025-02-25T00:00:00+03:00">
+    
+
+    <div class="page__inner-wrap">
+      
+        <header>
+          <h1 id="page-title" class="page__title" itemprop="headline">
+            <a href="https://setigate.ru/2025/02/25/vm_telegram_bot.html" itemprop="url">Запуск Telegram бота на ВМ
+</a>
+          </h1>
+          
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          1 minute read
+        
+      </span>
+    
+  </p>
+
+
+        </header>
+      
+
+      <section class="page__content" itemprop="text">
+        
+        <style>body {text-align: justify}</style>
+
+<p>И-за того, что Youtube стал блочить запросы к его API из РФ, <a href="https://t.me/youtube_transcript_bot">youtube_transcript_bot</a> сломался. Рабочим вариантом в процессе отладки оказалось банальное использование VPN. После некоторых попыток прикрутить vpn к контейнеру было решено перенести приложение на обычную виртуальную машину (ВМ).</p>
+
+<p>Далее, что было сделано.</p>
+
+<p>Поставим питон на ВМ</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>dnf update
+<span class="nb">sudo </span>dnf <span class="nb">install</span> <span class="nt">-y</span> python3.12
+</code></pre></div></div>
+
+<p>Так как в быту я пользуюсь adGuard VPN, и у них есть клиент для linux, то далее установим adGuard for linux по официальной инструкции.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo</span> <span class="nt">-s</span>
+curl <span class="nt">-fsSL</span> https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/release/install.sh <span class="nt">-o</span> /root/adguard.sh
+<span class="nb">chmod</span> +x /root/adguard.sh
+/root/adguard.sh
+</code></pre></div></div>
+<p>Скрипт чуть-чуть пошуршит, после установки бинарник AdGuard VPN CLI будет доступен в /opt/adguardvpn_cli/adguardvpn-cli</p>
+
+<p>Бот будет запускаться под отдельным пользователем, создаем его, настраиваем виртуальное окружение и подгружаем необходимые библиотеки для работы.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>useradd <span class="nt">-m</span> <span class="nt">-s</span> /bin/bash youtube_transcript_bot
+su youtube_transcript_bot
+python3.12 <span class="nt">-m</span> venv ~/venv
+venv/bin/pip <span class="nb">install</span> <span class="nt">--no-cache-dir</span> <span class="nt">-f</span> requirements.txt
+</code></pre></div></div>
+<p>Создаем в домашнем каталоге бота папку app и копируем в нее файлы приложения, не забывая выставить соответствующие права (chown) на файлы.</p>
+
+<p>Создаем два системных сервиса. Первый для VPN, второй - запуск приложения. <br />
+Сервис /etc/systemd/system/adguard-vpn.service. В /etc/adguard.conf хранится логин и пароль для авторизации. Вторая команда поднимает туннель до ближайшего сервера с минимальным latency.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>Unit]
+<span class="nv">Description</span><span class="o">=</span>AdGuard VPN Connection
+<span class="nv">After</span><span class="o">=</span>network.target
+<span class="nv">Wants</span><span class="o">=</span>network-online.target
+
+<span class="o">[</span>Service]
+<span class="nv">Type</span><span class="o">=</span>oneshot
+<span class="nv">ExecStart</span><span class="o">=</span>/bin/bash <span class="nt">-c</span> <span class="s1">'source /etc/adguard.conf \
+    &amp;&amp; /opt/adguardvpn_cli/adguardvpn-cli login -u "$VPN_USER" -p "$VPN_PASS" \
+    &amp;&amp; /opt/adguardvpn_cli/adguardvpn-cli connect -y'</span>
+<span class="nv">ExecStop</span><span class="o">=</span>/opt/adguardvpn_cli/adguardvpn-cli disconnect
+<span class="nv">RemainAfterExit</span><span class="o">=</span><span class="nb">true</span>
+
+<span class="o">[</span>Install]
+<span class="nv">WantedBy</span><span class="o">=</span>multi-user.target
+</code></pre></div></div>
+<p>Сервис /etc/systemd/system/youtube-transcript-bot.service. Зависит и запускается после adguard-vpn.service. Если упал, поднимается всегда.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">[</span>Unit]
+<span class="nv">Description</span><span class="o">=</span>Youtube Transcript Bot
+<span class="nv">After</span><span class="o">=</span>adguard-vpn.service
+<span class="nv">Requires</span><span class="o">=</span>adguard-vpn.service
+
+<span class="o">[</span>Service]
+<span class="nv">User</span><span class="o">=</span>youtube_transcript_bot
+<span class="nv">WorkingDirectory</span><span class="o">=</span>/home/youtube_transcript_bot/app
+<span class="nv">ExecStart</span><span class="o">=</span>/bin/bash <span class="nt">-c</span> <span class="s2">"source /home/youtube_transcript_bot/venv/bin/activate &amp;&amp; exec python telegram_bot.py"</span>
+<span class="nv">Restart</span><span class="o">=</span>always
+
+<span class="o">[</span>Install]
+<span class="nv">WantedBy</span><span class="o">=</span>multi-user.target
+</code></pre></div></div>
+
+<p>И стандартный набор для автозапуска</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>systemctl daemon-reload
+<span class="nb">sudo </span>systemctl <span class="nb">enable </span>adguard-vpn
+<span class="nb">sudo </span>systemctl start adguard-vpn
+</code></pre></div></div>
+<p>Аналогичные команды с youtube-transcript-bot.service. Готово!</p>
+
+        
+      </section>
+
+      <footer class="page__meta">
+        
+        
+  
+
+
+  
+
+  <p class="page__taxonomy">
+    <strong><i class="fas fa-fw fa-tags" aria-hidden="true"></i> Tags: </strong>
+    <span itemprop="keywords">
+    
+      <a href="/tags/#bot" class="page__taxonomy-item p-category" rel="tag">bot</a><span class="sep">, </span>
+    
+      <a href="/tags/#vm" class="page__taxonomy-item p-category" rel="tag">vm</a>
+    
+    </span>
+  </p>
+
+
+
+
+        
+
+  <p class="page__date"><strong><i class="fas fa-fw fa-calendar-alt" aria-hidden="true"></i> Updated:</strong> <time class="dt-published" datetime="2025-02-25T00:00:00+03:00">February 25, 2025</time></p>
+
+      </footer>
+
+      <section class="page__share">
+  
+
+  <a href="https://twitter.com/intent/tweet?text=%D0%97%D0%B0%D0%BF%D1%83%D1%81%D0%BA+Telegram+%D0%B1%D0%BE%D1%82%D0%B0+%D0%BD%D0%B0+%D0%92%D0%9C%20https%3A%2F%2Fsetigate.ru%2F2025%2F02%2F25%2Fvm_telegram_bot.html" class="btn btn--twitter" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Twitter"><i class="fab fa-fw fa-twitter" aria-hidden="true"></i><span> Twitter</span></a>
+
+  <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fsetigate.ru%2F2025%2F02%2F25%2Fvm_telegram_bot.html" class="btn btn--facebook" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on Facebook"><i class="fab fa-fw fa-facebook" aria-hidden="true"></i><span> Facebook</span></a>
+
+  <a href="https://www.linkedin.com/shareArticle?mini=true&url=https://setigate.ru/2025/02/25/vm_telegram_bot.html" class="btn btn--linkedin" onclick="window.open(this.href, 'window', 'left=20,top=20,width=500,height=500,toolbar=1,resizable=0'); return false;" title="Share on LinkedIn"><i class="fab fa-fw fa-linkedin" aria-hidden="true"></i><span> LinkedIn</span></a>
+</section>
+
+
+      
+  <nav class="pagination">
+    
+      <a href="/2024/12/02/ssl_certbot.html" class="pagination--pager" title="Авторотация ssl-сертификата
+">Previous</a>
+    
+    
+      <a href="#" class="pagination--pager disabled">Next</a>
+    
+  </nav>
+
+    </div>
+
+    
+  </article>
+
+  
+  
+    
+<div class="page__related">
+  
+  <h2 class="page__related-title">You May Also Enjoy</h2>
+  <div class="grid__wrapper">
+    
+      
+      
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/2024/12/02/ssl_certbot.html" rel="permalink">Авторотация ssl-сертификата
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          less than 1 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">
+
+Короткая заметка, скорее даже для себя, т.к. постов на эту тему написано немало.
+
+Let’s encrypt позволяет выпускать сертификат со сроком жизни не более 3 м...</p>
+  </article>
+</div>
+
+    
+      
+      
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/2024/08/04/jekyll_intro.html" rel="permalink">Что есть Jekyll или собственный сайт
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          3 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">
+
+После того, как cloud.ru объявил о своем free tier с бесплатной виртуалкой, то хостить веб-сайт на домашнем роутере перестало иметь смысл. 
+В любом случае ...</p>
+  </article>
+</div>
+
+    
+      
+      
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/2024/07/18/ssl_conf.html" rel="permalink">Выпуск ssl-сертификата на OpenWRT
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          3 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">
+
+Статья написана по причине, что настройка Let’s encrypt для выдачи сертификата для сайта имеет несколько особенностей при использовании OpenWRT прошивки и ...</p>
+  </article>
+</div>
+
+    
+      
+      
+
+
+
+<div class="grid__item">
+  <article class="archive__item" itemscope itemtype="https://schema.org/CreativeWork">
+    
+    <h2 class="archive__item-title no_toc" itemprop="headline">
+      
+        <a href="/2024/05/02/nginx_keenetic.html" rel="permalink">Настройка nginx на роутере keenetic
+</a>
+      
+    </h2>
+    
+
+  <p class="page__meta">
+    
+
+    
+
+    
+      
+      
+
+      <span class="page__meta-readtime">
+        <i class="far fa-clock" aria-hidden="true"></i>
+        
+          6 minute read
+        
+      </span>
+    
+  </p>
+
+
+    <p class="archive__item-excerpt" itemprop="description">
+
+Статья описывает установку веб-сервера nginx на роутерах keenetic. Для чего это может быть нужно?
+Если собственный блог страсть как хочется, публичным хост...</p>
+  </article>
+</div>
+
+    
+  </div>
+</div>
+
+  
+  
+</div>
+
+      
+    </div>
+
+    
+
+    <div id="footer" class="page__footer">
+      <footer>
+        <!-- start custom footer snippets -->
+
+<!-- end custom footer snippets -->
+        <div class="page__footer-follow">
+  <ul class="social-icons">
+    
+
+    
+      
+        
+          <li><a href="https://www.linkedin.com/in/sergeititov/" rel="nofollow noopener noreferrer"><i class="fab fa-brands fa-linkedin" aria-hidden="true"></i> LinkedIn</a></li>
+        
+      
+        
+          <li><a href="https://github.com/stitov" rel="nofollow noopener noreferrer"><i class="fab fa-fw fa-github" aria-hidden="true"></i> GitHub</a></li>
+        
+      
+    
+
+    
+      <li><a href="/feed.xml"><i class="fas fa-fw fa-rss-square" aria-hidden="true"></i> Feed</a></li>
+    
+  </ul>
+</div>
+
+<div class="page__footer-copyright">&copy; 2025 <a href="https://setigate.ru">setigate.ru</a>. Powered by <a href="https://jekyllrb.com" rel="nofollow">Jekyll</a> &amp; <a href="https://mademistakes.com/work/minimal-mistakes-jekyll-theme/" rel="nofollow">Minimal Mistakes</a>.</div>
+
+      </footer>
+    </div>
+
+    
+  <script src="/assets/js/main.min.js"></script>
+
+
+
+
+
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-7SW140TMK5"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-7SW140TMK5', { 'anonymize_ip': false});
+</script>
+
+
+
+
+
+
+
+
+  </body>
+</html>
